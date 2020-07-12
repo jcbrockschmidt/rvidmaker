@@ -1,15 +1,34 @@
 """Provides objects for parsing subreddits articles"""
 
+import asyncio
 from copy import copy
 from datetime import datetime
+from ffmpeg import FFmpeg
 import json
 import os
 import praw
+import requests
+from urllib.parse import urlsplit, urlunsplit
 
-from rvidmaker.exceptions import ConfigNotFound, RedditApiException
+from rvidmaker.utils import random_string
 
 CONFIG_PATH = 'config.json'
 USER_AGENT = 'rvidmaker 0.0.1'
+
+_TEMP_DOWNLOAD_DIR = '/tmp/rvidmaker'
+if not os.path.exists(_TEMP_DOWNLOAD_DIR):
+    os.mkdir(_TEMP_DOWNLOAD_DIR)
+
+class ConfigNotFound(Exception):
+    """Raised when no config file is found"""
+
+class RedditApiException(Exception):
+    """Raised when no config file is found"""
+    def __init__(self, msg):
+        super().__init__(msg)
+
+class RedditVideoNotFound(Exception):
+    """Raised if no Reddit video is found for an article"""
 
 class RedditComment:
     """Represents a comment to a Reddit article"""
@@ -73,6 +92,7 @@ class RedditArticle:
         self.score = self._article.score
         self.nsfw = self._article.over_18
         self._time_created = self._article.created_utc
+        self._media = self._article.media
 
     def get_age(self):
         """
@@ -140,6 +160,113 @@ class RedditArticle:
             comments.append(comment)
 
         return comments
+
+    def has_video(self, max_duration=None, include_youtube=True):
+        """
+        Checks if an article has a video that can be scraped. Only videos hosted by Reddit or
+        YouTube videos can be scraped. GIFs are ignored.
+
+        Args:
+            max_duration (int): Maximum duration of video in seconds. None if duration does not
+                matter.
+            include_youtube (bool): Whether to recognize YouTube videos.
+
+        Returns:
+            (bool) True if the article has a valid video, and false otherwise.
+        """
+        if self._media is not None:
+            if 'reddit_video' in self._media:
+                reddit_video = self._media['reddit_video']
+                if not reddit_video['is_gif']:
+                    dur = reddit_video['duration']
+                    if max_duration is None or dur <= max_duration:
+                        return True
+            elif 'type' in self._media:
+                # TODO: Check the duration
+                if self._media['type'] == 'youtube.com' and include_youtube:
+                    return True
+        return False
+
+    def _get_random_path(self, root, ext):
+        while True:
+            rand_str = random_string(10)
+            path = os.path.join(root, '{}.{}'.format(rand_str, ext))
+            if not os.path.exists(path):
+                return path
+
+    def get_video(self, output):
+        """
+        Downloads a video from an article. Assumes the article has a video.
+        Use 'has_video' to check that the articles has a video that can be scraped.
+
+        Args:
+            output (str): Path to write video to. File extension should be omitted.
+
+        Raises:
+            RedditVideoNotFound: If no video is found for the article.
+
+        Returns:
+            (str, str, str): The output path, title, and author. For Reddit videos, this will be the
+                articles title and user who posted. For YouTube videos, this will be the video's
+                title and uploader on YouTube.
+        """
+        if not self.has_video():
+            raise RedditVideoNotFound
+
+        if 'reddit_video' in self._media:
+            # Scrape a video hosted by Reddit
+            output_path = output + '.mp4'
+            reddit_video = self._media['reddit_video']
+
+            # Get video and audio URLs
+            video_url = reddit_video['fallback_url']
+            audio_url = list(urlsplit(video_url))
+            audio_url_path = audio_url[2]
+            audio_ext = os.path.splitext(audio_url_path)[1]
+            if audio_ext == '.mp4':
+                audio_basename = 'DASH_audio.mp4'
+            else:
+                audio_basename = 'audio'
+            audio_url[2] = os.path.join(os.path.dirname(audio_url_path), audio_basename)
+            audio_url[3] = ''
+            audio_url[4] = ''
+            audio_url = urlunsplit(audio_url)
+
+            # Download video and audio
+            temp_video_path = self._get_random_path(_TEMP_DOWNLOAD_DIR, 'mp4')
+            temp_audio_path = self._get_random_path(_TEMP_DOWNLOAD_DIR, 'mp4')
+            with open(temp_video_path, 'wb') as f:
+                req = requests.get(video_url)
+                # TODO: Check `req.status_code`
+                f.write(req.content)
+            with open(temp_audio_path, 'wb') as f:
+                req = requests.get(audio_url)
+                # TODO: Check `req.status_code`
+                f.write(req.content)
+
+            # Combine video and audio
+            ffmpeg = FFmpeg().option('y').input(
+                temp_video_path
+            ).input(
+                temp_audio_path
+            ).output(
+                output_path,
+                {
+                    'codec:v': 'copy',
+                    'codec:a': 'aac'
+                }
+            )
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(ffmpeg.execute())
+
+            # Delete temporary files
+            os.remove(temp_video_path)
+            os.remove(temp_audio_path)
+
+            return output_path, self.author, self.title
+        else:
+            # Scrape a YouTube video
+            raise NotImplementedError
 
 class RedditReader:
     """Reads popular articles from a subreddit"""
