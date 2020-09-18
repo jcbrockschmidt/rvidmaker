@@ -1,6 +1,6 @@
 # Reddit Video Maker
 
-Automatically generates narrated videos of Reddit articles.
+Generates videos of narrated Reddit articles or compilations of videos from subreddits.
 
 ## Installation
 
