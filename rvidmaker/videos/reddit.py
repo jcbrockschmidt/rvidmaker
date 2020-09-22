@@ -29,6 +29,11 @@ class RedditVideoRef(VideoRef):
         Args:
             output_path (str): Path to write the video to. Must have a valid video format extension.
         """
+        # Check video extension
+        base, ext = os.path.splitext(output_path)
+        if ext != 'mp4':
+            output_path = '{}.mp4'.format(base)
+
         # Download video and audio to temporary files.
         temp_video_path = get_random_path(_TEMP_DOWNLOAD_DIR, 'mp4')
         temp_audio_path = get_random_path(_TEMP_DOWNLOAD_DIR, 'mp4')
@@ -60,16 +65,10 @@ class RedditVideoRef(VideoRef):
         os.remove(temp_video_path)
         os.remove(temp_audio_path)
 
+        return output_path
+
     def get_title(self):
-        """
-        Returns:
-            (str): The title of the video.
-        """
         return self.title
 
     def get_author(self):
-        """
-        Returns:
-            (str) The author of the video.
-        """
         return self.author
