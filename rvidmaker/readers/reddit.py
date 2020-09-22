@@ -157,14 +157,16 @@ class RedditArticle:
 
         return comments
 
-    def has_video(self, max_duration=None, include_youtube=True):
+    def has_video(self, min_duration=None, max_duration=None, include_youtube=True):
         """
         Checks if an article has a video that can be scraped. Only videos hosted by Reddit or
         YouTube videos can be scraped. GIFs are ignored.
 
         Args:
-            max_duration (int): Maximum duration of video in seconds. None if duration does not
-                matter.
+            min_duration (int): Minimum duration of video in seconds. None if the minimum duration
+                does not matter.
+            max_duration (int): Maximum duration of video in seconds. None if maximum duration
+                does not matter.
             include_youtube (bool): Whether to recognize YouTube videos.
 
         Returns:
@@ -175,7 +177,11 @@ class RedditArticle:
                 reddit_video = self._media['reddit_video']
                 if not reddit_video['is_gif']:
                     dur = reddit_video['duration']
-                    if max_duration is None or dur <= max_duration:
+                    dur_valid = (
+                        (max_duration is None or dur <= max_duration) and
+                        (min_duration is None or dur >= min_duration)
+                    )
+                    if dur_valid:
                         return True
             elif 'type' in self._media:
                 # TODO: Check the duration
