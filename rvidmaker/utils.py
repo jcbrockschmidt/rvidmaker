@@ -14,7 +14,7 @@ def random_string(n):
         n (int): Length of string.
 
     Returns:
-        (str) The randomly generated string.
+        str: The randomly generated string.
     """
     s = ''.join((random.choice(_CHAR_LIST) for i in range(n)))
     return s
@@ -26,7 +26,7 @@ def get_random_path(root, ext):
         ext (str): File extension for the random path.
 
     Returns:
-        (str) A random, unique path within the provided root directory.
+        str: A random, unique path within the provided root directory.
 
     Raises:
         DirectoryNotFound: If root directory does not exist.

@@ -29,7 +29,7 @@ class VideoCompiler:
     def get_video_count(self):
         """
         Returns:
-           (int) Number of videos added by `add_video`, ready to be compiled.
+           int: Number of videos added by `add_video`, ready to be compiled.
         """
         return len(self._videos)
 

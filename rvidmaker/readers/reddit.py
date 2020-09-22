@@ -64,8 +64,8 @@ class RedditComment:
         Gets the child comment if one exists.
 
         Returns:
-            (RedditComment): The child comment, if it exists.
-            (None): If there is no child.
+            RedditComment: The child comment, if it exists.
+            None: If there is no child.
         """
         return copy(self._child)
 
@@ -95,7 +95,7 @@ class RedditArticle:
         Gets the time that has elapse since the article was posted.
 
         Returns:
-            (float) Hours since posting.
+            float: Hours since posting.
         """
         curtime = datetime.now().timestamp()
         hours = (curtime - self._time_created) / (60 * 60)
@@ -132,7 +132,7 @@ class RedditArticle:
                 have to be included.
 
         Returns:
-            (list) List of `RedditComment`s.
+            list: List of `RedditComment`s.
         """
         max_comments = max(1, max_comments)
         max_depth = max(0, max_depth)
@@ -170,7 +170,7 @@ class RedditArticle:
             include_youtube (bool): Whether to recognize YouTube videos.
 
         Returns:
-            (bool) True if the article has a valid video, and false otherwise.
+            bool: True if the article has a valid video, and false otherwise.
         """
         if self._media is not None:
             if 'reddit_video' in self._media:
@@ -205,7 +205,7 @@ class RedditArticle:
             RedditVideoNotFound: If no video is found for the article.
 
         Returns:
-            (VideoRef) Reference to the video.
+            VideoRef: Reference to the video.
         """
         if not self.has_video():
             raise RedditVideoNotFound
@@ -286,7 +286,7 @@ class RedditReader:
             RedditApiException: If calls to the Reddit API fail.
 
         Returns:
-            (list) List of `RedditArticle`s sorted in descending order by score.
+            list: List of `RedditArticle`s sorted in descending order by score.
         """
         limit = max(0, min(limit, 100))
         try:
@@ -315,7 +315,7 @@ class RedditReader:
             RedditApiException: If calls to the Reddit API fail.
 
         Returns:
-            (list) List of `RedditArticle`s sorted in descending order by score.
+            list: List of `RedditArticle`s sorted in descending order by score.
         """
         limit = max(0, min(limit, 100))
         try:
