@@ -1,23 +1,17 @@
 """Provides objects for parsing subreddits articles"""
 
-import asyncio
 from copy import copy
 from datetime import datetime
-from ffmpeg import FFmpeg
 import json
 import os
 import praw
-import requests
 from urllib.parse import urlsplit, urlunsplit
 
 from rvidmaker.utils import random_string
+from rvidmaker.videos import RedditVideoRef
 
 CONFIG_PATH = 'config.json'
 USER_AGENT = 'rvidmaker 0.0.1'
-
-_TEMP_DOWNLOAD_DIR = '/tmp/rvidmaker'
-if not os.path.exists(_TEMP_DOWNLOAD_DIR):
-    os.mkdir(_TEMP_DOWNLOAD_DIR)
 
 class ConfigNotFound(Exception):
     """Raised when no config file is found"""
@@ -36,7 +30,9 @@ class RedditComment:
     def __init__(self, author, text, score):
         """
         Args:
-            text: The comment's text.
+            author (str): The comment's author.
+            text (str): The comment's text.
+            score (int): The comment's score.
         """
         self.author = author
         self.text = text
@@ -84,7 +80,7 @@ class RedditArticle:
         """
         self._article = praw_article
         self.title = self._article.title
-        self.author = self._article.author
+        self.author = self._article.author.name
         self.text = self._article.selftext
         self.category = self._article.category
         self.id = self._article.id
@@ -194,28 +190,22 @@ class RedditArticle:
             if not os.path.exists(path):
                 return path
 
-    def get_video(self, output):
+    def get_video(self):
         """
-        Downloads a video from an article. Assumes the article has a video.
+        Gets a video reference from an article. Assumes the article has a video.
         Use 'has_video' to check that the articles has a video that can be scraped.
-
-        Args:
-            output (str): Path to write video to. File extension should be omitted.
 
         Raises:
             RedditVideoNotFound: If no video is found for the article.
 
         Returns:
-            (str, str, str): The output path, title, and author. For Reddit videos, this will be the
-                articles title and user who posted. For YouTube videos, this will be the video's
-                title and uploader on YouTube.
+            (VideoRef) Reference to the video.
         """
         if not self.has_video():
             raise RedditVideoNotFound
 
         if 'reddit_video' in self._media:
             # Scrape a video hosted by Reddit
-            output_path = output + '.mp4'
             reddit_video = self._media['reddit_video']
 
             # Get video and audio URLs
@@ -232,38 +222,7 @@ class RedditArticle:
             audio_url[4] = ''
             audio_url = urlunsplit(audio_url)
 
-            # Download video and audio
-            temp_video_path = self._get_random_path(_TEMP_DOWNLOAD_DIR, 'mp4')
-            temp_audio_path = self._get_random_path(_TEMP_DOWNLOAD_DIR, 'mp4')
-            with open(temp_video_path, 'wb') as f:
-                req = requests.get(video_url)
-                # TODO: Check `req.status_code`
-                f.write(req.content)
-            with open(temp_audio_path, 'wb') as f:
-                req = requests.get(audio_url)
-                # TODO: Check `req.status_code`
-                f.write(req.content)
-
-            # Combine video and audio
-            ffmpeg = FFmpeg().option('y').input(
-                temp_video_path
-            ).input(
-                temp_audio_path
-            ).output(
-                output_path,
-                {
-                    'codec:v': 'copy',
-                    'codec:a': 'aac'
-                }
-            )
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(ffmpeg.execute())
-
-            # Delete temporary files
-            os.remove(temp_video_path)
-            os.remove(temp_audio_path)
-
-            return output_path, self.author, self.title
+            return RedditVideoRef(self.title, self.author, video_url, audio_url)
         else:
             # Scrape a YouTube video
             raise NotImplementedError
@@ -295,6 +254,18 @@ class RedditReader:
         except praw.exceptions.PRAWException as e:
             raise RedditApiException(str(e))
 
+    def _filter_articles(self, articles, min_score=None, min_age=None):
+        filtered = []
+        for art in articles:
+            if not min_score is None:
+                if art.score < min_score:
+                    continue
+            if not min_age is None:
+                if art.get_age() < min_age:
+                    continue
+            filtered.append(art)
+        return filtered
+
     def get_hot_articles(self, subreddit, limit=10, min_score=None, min_age=None):
         """
         Gets a collection of popular (hot) articles from a subreddit.
@@ -318,16 +289,36 @@ class RedditReader:
         except praw.exceptions.PRAWException as e:
             raise RedditApiException(str(e))
 
-        articles = []
-        for raw_art in raw_articles:
-            art = RedditArticle(raw_art)
-            if not min_score is None:
-                if art.score < min_score:
-                    continue
-            if not min_age is None:
-                if art.get_age() < min_age:
-                    continue
-            articles.append(art)
+        unfiltered = [RedditArticle(art) for art in raw_articles]
+        filtered = self._filter_articles(unfiltered, min_score=min_score, min_age=min_age)
+        filtered.sort(key=lambda x: x.score, reverse=True)
+        return filtered
 
-        articles.sort(key=lambda x: x.score, reverse=True)
-        return articles
+    def get_top_articles(self, subreddit, time_filter='all', limit=10, min_score=None, min_age=None):
+        """
+        Gets a collection of the top articles from a subreddit for a period of time.
+
+        Args:
+            subreddit (str): Name of subreddit.
+            time_filter (str): One of "all", "day", "hour", "month", "week", "year".
+            limit (int): Maximum number of articles to read where 1 <= `limit` <= 100.
+            min_score (int): Minimum score of articles to include. None for no minimum.
+            min_age (int): Minimum age in hours of articles to include. None for no minimum.
+
+        Raises:
+            RedditApiException: If calls to the Reddit API fail.
+
+        Returns:
+            (list) List of `RedditArticle`s sorted in descending order by score.
+        """
+        limit = max(0, min(limit, 100))
+        try:
+            sub = self.reddit.subreddit(subreddit)
+            raw_articles = sub.top(time_filter=time_filter, limit=limit)
+        except praw.exceptions.PRAWException as e:
+            raise RedditApiException(str(e))
+
+        unfiltered = [RedditArticle(art) for art in raw_articles]
+        filtered = self._filter_articles(unfiltered, min_score=min_score, min_age=min_age)
+        filtered.sort(key=lambda x: x.score, reverse=True)
+        return filtered

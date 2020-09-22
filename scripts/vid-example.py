@@ -18,7 +18,7 @@ LIMIT = 100
 BACK_COLOR = (0, 0, 0)
 SIZE = (1920, 1080)
 AUDIO_LEVEL = 0.7
-OUTPUT_DIR = 'downloaded'
+OUTPUT_DIR = '.downloaded'
 
 if __name__ == '__main__':
     if not os.path.exists(OUTPUT_DIR):
@@ -29,11 +29,12 @@ if __name__ == '__main__':
     videos = []
     for art in articles:
         if not art.nsfw and art.has_video(max_duration=MAX_DURATION, include_youtube=False):
-            output_path = os.path.join(OUTPUT_DIR, 'vid{:04d}'.format(vid_num))
+            output_path = os.path.join(OUTPUT_DIR, 'vid{:04d}.mp4'.format(vid_num))
             print('Downloading "{}" ({}) to {}...'.format(art.title, art.score, output_path))
             try:
-                vid_info = art.get_video(output_path)
-                videos.append(vid_info)
+                vid_ref = art.get_video()
+                vid_ref.download(output_path)
+                videos.append((vid_ref, output_path))
                 vid_num += 1
             except:
                 print('WARNING: Failed to download "{}"'.format(art.title))
@@ -42,7 +43,9 @@ if __name__ == '__main__':
 
     clips = []
     w, h = SIZE
-    for path, author, title, origin in videos:
+    for vid_ref, path in videos:
+        title = vid_ref.get_title()
+        author = vid_ref.get_author()
         clip = VideoFileClip(path)
 
         # Adjust audio levels
