@@ -1,5 +1,6 @@
 """Implements function for creating a split thumbnail of a single video"""
 
+import math
 from moviepy.editor import afx, CompositeVideoClip, concatenate_videoclips, TextClip, VideoFileClip
 from PIL import Image, ImageDraw, ImageFont
 
@@ -31,7 +32,7 @@ def _make_pane(img, size):
 def create_split_thumbnail(
         video_path, title,
         size=(1280, 720),
-        font_size=150,
+        max_font_size=150,
         font_color=(255, 255, 255),
         box_fill=(255, 69, 0),
         padding=20,
@@ -45,7 +46,8 @@ def create_split_thumbnail(
         video_path (str): Path to a video to generate thumbnail with.
         title (str): Title to place on thumbnail.
         size (int, int): Width and height of thumbnail.
-        font_size (int): Font size of title text.
+        max_font_size (int): Maximum font size of title text. The title font size may be changed
+            to better fit within the thumbnail.
         font_color (int, int, int): RGB color of the title text.
         box_fill (int, int, int): RGB color of the box around the title text.
         padding (int): Padding of the box around the title text in pixels.
@@ -66,9 +68,20 @@ def create_split_thumbnail(
     xoffset = int(w / 2)
     final.paste(rt_pane, (xoffset, 0))
 
+    # Try to find a font size that fits within the thumbnail's width. Does not check height.
+    # The final width may not necessarily fit within the thumbnail's width.
+    for div in range(1, 8):
+        font_size = int(max_font_size / div)
+        if font_size < 20:
+            break
+        font = ImageFont.truetype('Impact', size=font_size)
+        txt_w, txt_h = font.getsize(title)
+        # Get approximate width of rotated text.
+        rot_w = txt_w * abs(math.cos(math.degrees(text_rotate)))
+        if rot_w <= w:
+            break
+
     # Create title frame.
-    font = ImageFont.truetype('Impact', size=font_size)
-    txt_w, txt_h = font.getsize(title)
     yoffset = int(-font_size / 6)
     title_size = (txt_w + padding * 2, txt_h + padding * 2 + yoffset)
     title_img = Image.new('RGB', title_size, color=box_fill)

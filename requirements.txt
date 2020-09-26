@@ -3,3 +3,4 @@ moviepy>=1.0.3
 praw>=7.0.0
 python-ffmpeg>=1.0.11
 Pillow>=7.2.0
+rake-nltk>=1.0.4
