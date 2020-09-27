@@ -1,4 +1,4 @@
-"""Creates a compilation of videos"""
+"""Creates a compilation of video clips"""
 
 from glob import glob
 from moviepy.editor import afx, CompositeVideoClip, concatenate_videoclips, TextClip, VideoFileClip
@@ -76,11 +76,12 @@ class VideoCompiler:
             clip = VideoFileClip(path)
 
             # Adjust audio levels.
-            audio = clip.audio.fx(afx.audio_normalize)
-            max_volume = clip.audio.max_volume()
-            volume_mult = audio_level / max_volume
-            clip.set_audio(audio)
-            clip = clip.fx(afx.volumex, volume_mult)
+            if clip.audio.max_volume() > 0:
+                audio = clip.audio.fx(afx.audio_normalize)
+                max_volume = clip.audio.max_volume()
+                volume_mult = audio_level / max_volume
+                clip.set_audio(audio)
+                clip = clip.fx(afx.volumex, volume_mult)
 
             # Resize video.
             cw, ch = clip.size
