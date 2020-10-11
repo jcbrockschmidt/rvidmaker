@@ -1,8 +1,10 @@
 class VoiceNotFound(Exception):
     """Raised when an invalid voice ID is used"""
 
+
 class NarrationError(Exception):
     """Raised when something goes wrong while generating narrated audio"""
+
 
 class VoicerInterface:
     """An interface for voicers for generating narrated text"""

@@ -1,5 +1,6 @@
 """Provides an interface for references to remote videos"""
 
+
 class VideoRef:
     """References a remote video"""
 

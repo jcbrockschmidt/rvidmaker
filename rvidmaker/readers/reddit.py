@@ -10,19 +10,24 @@ from urllib.parse import urlsplit, urlunsplit
 from rvidmaker.utils import random_string
 from rvidmaker.videos import RedditVideoRef
 
-CONFIG_PATH = 'config.json'
-USER_AGENT = 'rvidmaker 0.0.1'
+CONFIG_PATH = "config.json"
+USER_AGENT = "rvidmaker 0.0.1"
+
 
 class ConfigNotFound(Exception):
     """Raised when no config file is found"""
 
+
 class RedditApiException(Exception):
     """Raised when no config file is found"""
+
     def __init__(self, msg):
         super().__init__(msg)
 
+
 class RedditVideoNotFound(Exception):
     """Raised if no Reddit video is found for an article"""
+
 
 class RedditComment:
     """Represents a comment to a Reddit article"""
@@ -68,6 +73,7 @@ class RedditComment:
             None: If there is no child.
         """
         return copy(self._child)
+
 
 class RedditArticle:
     """Represents a Reddit article"""
@@ -150,7 +156,7 @@ class RedditArticle:
         comments = []
         for praw_comment in praw_comments[:max_comments]:
             comment = RedditComment.from_praw(praw_comment)
-            if comment.author is None or comment.text == '[deleted]':
+            if comment.author is None or comment.text == "[deleted]":
                 continue
             self._expand_comment(comment, praw_comment, max_depth, percent_thres)
             comments.append(comment)
@@ -173,26 +179,25 @@ class RedditArticle:
             bool: True if the article has a valid video, and false otherwise.
         """
         if self._media is not None:
-            if 'reddit_video' in self._media:
-                reddit_video = self._media['reddit_video']
-                if not reddit_video['is_gif']:
-                    dur = reddit_video['duration']
-                    dur_valid = (
-                        (max_duration is None or dur <= max_duration) and
-                        (min_duration is None or dur >= min_duration)
+            if "reddit_video" in self._media:
+                reddit_video = self._media["reddit_video"]
+                if not reddit_video["is_gif"]:
+                    dur = reddit_video["duration"]
+                    dur_valid = (max_duration is None or dur <= max_duration) and (
+                        min_duration is None or dur >= min_duration
                     )
                     if dur_valid:
                         return True
-            elif 'type' in self._media:
+            elif "type" in self._media:
                 # TODO: Check the duration
-                if self._media['type'] == 'youtube.com' and include_youtube:
+                if self._media["type"] == "youtube.com" and include_youtube:
                     return True
         return False
 
     def _get_random_path(self, root, ext):
         while True:
             rand_str = random_string(10)
-            path = os.path.join(root, '{}.{}'.format(rand_str, ext))
+            path = os.path.join(root, "{}.{}".format(rand_str, ext))
             if not os.path.exists(path):
                 return path
 
@@ -210,28 +215,29 @@ class RedditArticle:
         if not self.has_video():
             raise RedditVideoNotFound
 
-        if 'reddit_video' in self._media:
+        if "reddit_video" in self._media:
             # Scrape a video hosted by Reddit
-            reddit_video = self._media['reddit_video']
+            reddit_video = self._media["reddit_video"]
 
             # Get video and audio URLs
-            video_url = reddit_video['fallback_url']
+            video_url = reddit_video["fallback_url"]
             audio_url = list(urlsplit(video_url))
             audio_url_path = audio_url[2]
             audio_ext = os.path.splitext(audio_url_path)[1]
-            if audio_ext == '.mp4':
-                audio_basename = 'DASH_audio.mp4'
+            if audio_ext == ".mp4":
+                audio_basename = "DASH_audio.mp4"
             else:
-                audio_basename = 'audio'
+                audio_basename = "audio"
             audio_url[2] = os.path.join(os.path.dirname(audio_url_path), audio_basename)
-            audio_url[3] = ''
-            audio_url[4] = ''
+            audio_url[3] = ""
+            audio_url[4] = ""
             audio_url = urlunsplit(audio_url)
 
             return RedditVideoRef(self.title, self.author, video_url, audio_url)
         else:
             # Scrape a YouTube video
             raise NotImplementedError
+
 
 class RedditReader:
     """Reads popular articles from a subreddit"""
@@ -251,11 +257,11 @@ class RedditReader:
 
         try:
             self.reddit = praw.Reddit(
-                client_id=config['client_id'],
-                client_secret=config['client_secret'],
-                username=config['username'],
-                password=config['password'],
-                user_agent=USER_AGENT
+                client_id=config["client_id"],
+                client_secret=config["client_secret"],
+                username=config["username"],
+                password=config["password"],
+                user_agent=USER_AGENT,
             )
         except praw.exceptions.PRAWException as e:
             raise RedditApiException(str(e))
@@ -296,11 +302,15 @@ class RedditReader:
             raise RedditApiException(str(e))
 
         unfiltered = [RedditArticle(art) for art in raw_articles]
-        filtered = self._filter_articles(unfiltered, min_score=min_score, min_age=min_age)
+        filtered = self._filter_articles(
+            unfiltered, min_score=min_score, min_age=min_age
+        )
         filtered.sort(key=lambda x: x.score, reverse=True)
         return filtered
 
-    def get_top_articles(self, subreddit, time_filter='all', limit=10, min_score=None, min_age=None):
+    def get_top_articles(
+        self, subreddit, time_filter="all", limit=10, min_score=None, min_age=None
+    ):
         """
         Gets a collection of the top articles from a subreddit for a period of time.
 
@@ -325,6 +335,8 @@ class RedditReader:
             raise RedditApiException(str(e))
 
         unfiltered = [RedditArticle(art) for art in raw_articles]
-        filtered = self._filter_articles(unfiltered, min_score=min_score, min_age=min_age)
+        filtered = self._filter_articles(
+            unfiltered, min_score=min_score, min_age=min_age
+        )
         filtered.sort(key=lambda x: x.score, reverse=True)
         return filtered

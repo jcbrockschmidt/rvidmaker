@@ -1,8 +1,15 @@
 """Implements function for creating a split thumbnail of a single video"""
 
 import math
-from moviepy.editor import afx, CompositeVideoClip, concatenate_videoclips, TextClip, VideoFileClip
+from moviepy.editor import (
+    afx,
+    CompositeVideoClip,
+    concatenate_videoclips,
+    TextClip,
+    VideoFileClip,
+)
 from PIL import Image, ImageDraw, ImageFont
+
 
 def _make_pane(img, size):
     """
@@ -29,14 +36,16 @@ def _make_pane(img, size):
     pane = img.resize((sw, sh), box=box)
     return pane
 
+
 def create_split_thumbnail(
-        video_path, title,
-        size=(1280, 720),
-        max_font_size=150,
-        font_color=(255, 255, 255),
-        box_fill=(255, 69, 0),
-        padding=20,
-        text_rotate=5
+    video_path,
+    title,
+    size=(1280, 720),
+    max_font_size=150,
+    font_color=(255, 255, 255),
+    box_fill=(255, 69, 0),
+    padding=20,
+    text_rotate=5,
 ):
     """
     Creates a split thumbnail from a single video. A frame early in the video is placed next to a
@@ -63,7 +72,7 @@ def create_split_thumbnail(
     rt_frame = Image.fromarray(clip.get_frame(rt_t))
     lt_pane = _make_pane(lt_frame, size)
     rt_pane = _make_pane(rt_frame, size)
-    final = Image.new('RGBA', size)
+    final = Image.new("RGBA", size)
     final.paste(lt_pane, (0, 0))
     xoffset = int(w / 2)
     final.paste(rt_pane, (xoffset, 0))
@@ -74,7 +83,7 @@ def create_split_thumbnail(
         font_size = int(max_font_size / div)
         if font_size < 20:
             break
-        font = ImageFont.truetype('Impact', size=font_size)
+        font = ImageFont.truetype("Impact", size=font_size)
         txt_w, txt_h = font.getsize(title)
         # Get approximate width of rotated text.
         rot_w = txt_w * abs(math.cos(math.degrees(text_rotate)))
@@ -84,14 +93,14 @@ def create_split_thumbnail(
     # Create title frame.
     yoffset = int(-font_size / 6)
     title_size = (txt_w + padding * 2, txt_h + padding * 2 + yoffset)
-    title_img = Image.new('RGB', title_size, color=box_fill)
+    title_img = Image.new("RGB", title_size, color=box_fill)
     draw = ImageDraw.Draw(title_img)
     draw.text((padding, padding + yoffset), title, font=font, fill=font_color)
 
     # Rotate text and create alpha mask.
     title_rot = title_img.rotate(text_rotate, expand=True)
-    mask = Image.new('RGB', title_img.size, (255, 255, 255))
-    mask = mask.rotate(text_rotate, expand=True).convert('L').resize(title_rot.size)
+    mask = Image.new("RGB", title_img.size, (255, 255, 255))
+    mask = mask.rotate(text_rotate, expand=True).convert("L").resize(title_rot.size)
 
     # Place title frame in center.
     tw = title_size[0]

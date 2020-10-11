@@ -3,10 +3,12 @@ from rake_nltk import Rake
 import random
 import re
 
-_CHAR_LIST = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+_CHAR_LIST = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
 
 class DirNotFound(Exception):
     """Raised if a directory does not exist"""
+
 
 def random_string(n):
     """
@@ -18,8 +20,9 @@ def random_string(n):
     Returns:
         str: The randomly generated string.
     """
-    s = ''.join((random.choice(_CHAR_LIST) for i in range(n)))
+    s = "".join((random.choice(_CHAR_LIST) for i in range(n)))
     return s
+
 
 def get_random_path(root, ext):
     """
@@ -37,9 +40,10 @@ def get_random_path(root, ext):
         raise DirNotFound
     while True:
         rand_str = random_string(10)
-        path = os.path.join(root, '{}.{}'.format(rand_str, ext))
+        path = os.path.join(root, "{}.{}".format(rand_str, ext))
         if not os.path.exists(path):
             return path
+
 
 def shorten_title(title, max_title_len, alphanum_only=True):
     """
@@ -55,8 +59,8 @@ def shorten_title(title, max_title_len, alphanum_only=True):
     """
     title = title.lower()
     if alphanum_only:
-        filter = re.compile('[^a-z0-9 ]')
-        title = filter.sub('', title)
+        filter = re.compile("[^a-z0-9 ]")
+        title = filter.sub("", title)
 
     if len(title) <= max_title_len:
         # Title is already short enough.
@@ -78,7 +82,7 @@ def shorten_title(title, max_title_len, alphanum_only=True):
         return new_title[:max_title_len]
 
     for w in words[1:]:
-        append_title = '{} {}'.format(new_title, w)
+        append_title = "{} {}".format(new_title, w)
         if len(append_title) > max_title_len:
             break
         new_title = append_title

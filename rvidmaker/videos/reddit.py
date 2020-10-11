@@ -8,10 +8,11 @@ import requests
 from rvidmaker.utils import get_random_path
 from .interface import VideoRef
 
-_TEMP_DOWNLOAD_DIR = '/tmp/rvidmaker'
+_TEMP_DOWNLOAD_DIR = "/tmp/rvidmaker"
 
 if not os.path.exists(_TEMP_DOWNLOAD_DIR):
     os.mkdir(_TEMP_DOWNLOAD_DIR)
+
 
 class RedditVideoRef(VideoRef):
     """References videos hosted on Reddit"""
@@ -31,32 +32,28 @@ class RedditVideoRef(VideoRef):
         """
         # Check video extension
         base, ext = os.path.splitext(output_path)
-        if ext != 'mp4':
-            output_path = '{}.mp4'.format(base)
+        if ext != "mp4":
+            output_path = "{}.mp4".format(base)
 
         # Download video and audio to temporary files.
-        temp_video_path = get_random_path(_TEMP_DOWNLOAD_DIR, 'mp4')
-        temp_audio_path = get_random_path(_TEMP_DOWNLOAD_DIR, 'mp4')
-        with open(temp_video_path, 'wb') as f:
+        temp_video_path = get_random_path(_TEMP_DOWNLOAD_DIR, "mp4")
+        temp_audio_path = get_random_path(_TEMP_DOWNLOAD_DIR, "mp4")
+        with open(temp_video_path, "wb") as f:
             req = requests.get(self.video_url)
             # TODO: Check `req.status_code`
             f.write(req.content)
-        with open(temp_audio_path, 'wb') as f:
+        with open(temp_audio_path, "wb") as f:
             req = requests.get(self.audio_url)
             # TODO: Check `req.status_code`
             f.write(req.content)
 
         # Combine video and audio
-        ffmpeg = FFmpeg().option('y').input(
-            temp_video_path
-        ).input(
-            temp_audio_path
-        ).output(
-            output_path,
-            {
-                'codec:v': 'copy',
-                'codec:a': 'aac'
-            }
+        ffmpeg = (
+            FFmpeg()
+            .option("y")
+            .input(temp_video_path)
+            .input(temp_audio_path)
+            .output(output_path, {"codec:v": "copy", "codec:a": "aac"})
         )
         loop = asyncio.get_event_loop()
         loop.run_until_complete(ffmpeg.execute())

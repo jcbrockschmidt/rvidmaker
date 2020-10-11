@@ -1,12 +1,18 @@
 """Creates a compilation of video clips"""
 
 from glob import glob
-from moviepy.editor import afx, CompositeVideoClip, concatenate_videoclips, TextClip, VideoFileClip
+from moviepy.editor import (
+    afx,
+    CompositeVideoClip,
+    concatenate_videoclips,
+    TextClip,
+    VideoFileClip,
+)
 import os
 from shutil import rmtree
 
 # Temporary directory for storing downloaded videos.
-_DOWNLOAD_DIR = '.downloaded'
+_DOWNLOAD_DIR = ".downloaded"
 
 
 class NotEnoughVideos(Exception):
@@ -63,7 +69,7 @@ class VideoCompiler:
         vid_num = 0
         dl = []
         for v in self._videos:
-            dl_path = os.path.join(_DOWNLOAD_DIR, 'vid{:04d}'.format(vid_num))
+            dl_path = os.path.join(_DOWNLOAD_DIR, "vid{:04d}".format(vid_num))
             try:
                 print('Downloading "{}"...'.format(v.title))
                 actual_dl_path = v.download(dl_path)
@@ -72,7 +78,7 @@ class VideoCompiler:
             except:
                 # TODO: Handle deleting in the download function itself
                 print('WARNING: Failed to download "{}"'.format(v.title))
-                for path in glob('{}.*'.format(dl_path)):
+                for path in glob("{}.*".format(dl_path)):
                     os.remove(path)
 
         # Load all clips.
@@ -98,25 +104,29 @@ class VideoCompiler:
             cw, ch = clip.size
             size_mult = min(w / cw, h / ch)
             new_size = (cw * size_mult, ch * size_mult)
-            clip = clip.resize(newsize=new_size).on_color(size=res, color=bg_color, pos='center')
+            clip = clip.resize(newsize=new_size).on_color(
+                size=res, color=bg_color, pos="center"
+            )
 
             # Add text.
-            title_clip = TextClip(title, font='IBM Plex Sans', fontsize=60, color='white')
+            title_clip = TextClip(
+                title, font="IBM Plex Sans", fontsize=60, color="white"
+            )
             title_clip = title_clip.set_position((10, 10)).set_duration(clip.duration)
-            title_clip_shadow = TextClip(title, font='IBM Plex Sans', fontsize=60, color='black')
-            title_clip_shadow = title_clip_shadow.set_position((12, 12)).set_duration(clip.duration)
-            author_text = 'u/{}'.format(author)
-            author_clip = TextClip(author_text, font='IBM Plex Sans', fontsize=40, color='grey')
+            title_clip_shadow = TextClip(
+                title, font="IBM Plex Sans", fontsize=60, color="black"
+            )
+            title_clip_shadow = title_clip_shadow.set_position((12, 12)).set_duration(
+                clip.duration
+            )
+            author_text = "u/{}".format(author)
+            author_clip = TextClip(
+                author_text, font="IBM Plex Sans", fontsize=40, color="grey"
+            )
             author_clip = author_clip.set_position((40, 75)).set_duration(clip.duration)
 
             clip = CompositeVideoClip(
-                [
-                    clip,
-                    title_clip_shadow,
-                    title_clip,
-                    author_clip
-                ],
-                size=res
+                [clip, title_clip_shadow, title_clip, author_clip], size=res
             )
             clips.append(clip)
 

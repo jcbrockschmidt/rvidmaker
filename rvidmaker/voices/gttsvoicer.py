@@ -3,12 +3,13 @@ from os import path
 
 from .voicerinterface import VoiceNotFound, VoicerInterface, NarrationError
 
+
 class GTTSVoicer(VoicerInterface):
     """A voicer that uses Google Text-to-Speech"""
 
-    LANG = 'en'
-    SOUND_OUTPUT_ROOT = '/tmp'
-    _voices = ['default']
+    LANG = "en"
+    SOUND_OUTPUT_ROOT = "/tmp"
+    _voices = ["default"]
 
     def __init__(self):
         self.output_count = 0
@@ -22,12 +23,11 @@ class GTTSVoicer(VoicerInterface):
 
     def select_voice(self, person_id=None):
         # gtts only provides one voice.
-        return 'default'
+        return "default"
 
     def read_text(self, text):
         output_path = path.join(
-            self.SOUND_OUTPUT_ROOT,
-            'gtts-{}.mp3'.format(self.output_count)
+            self.SOUND_OUTPUT_ROOT, "gtts-{}.mp3".format(self.output_count)
         )
         self.output_count += 1
         tts = gTTS(text=text, lang=self.LANG)
