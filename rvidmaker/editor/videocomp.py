@@ -8,14 +8,22 @@ from shutil import rmtree
 # Temporary directory for storing downloaded videos.
 _DOWNLOAD_DIR = '.downloaded'
 
+
 class NotEnoughVideos(Exception):
     """Raised when there are not enough videos for a compilation"""
+
 
 class VideoCompiler:
     """Creates a compilation of video clips"""
 
-    def __init__(self):
+    def __init__(self, censor):
+        """
+        Args:
+            censor (better_profanity.Profanity): Used to censor undesirable words in rendered text.
+                None to not censor words.
+        """
         self._videos = []
+        self._censor = censor
 
     def add_video(self, video):
         """
@@ -73,6 +81,9 @@ class VideoCompiler:
         for v, path in dl:
             title = v.get_title()
             author = v.get_author()
+            if self._censor is not None:
+                title = self._censor.censor(title)
+                author = self._censor.censor(author)
             clip = VideoFileClip(path)
 
             # Adjust audio levels.
