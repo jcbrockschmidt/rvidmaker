@@ -102,10 +102,13 @@ def main():
     for v in videos:
         if blocklist.contains_profanity(v.get_title()):
             continue
+        print('Using "{}" for thumbnail...'.format(v.get_title()))
         make_thumbnail(v, v.get_title(), THUMB_PATH)
         thumb_made = True
+        break
     # No video had a safe title. Use a default title on top of a thumbnail of the first video.
     if not thumb_made:
+        print("Using default title for thumbnail...")
         def_title = SUBREDDIT
         make_thumbnail(videos[0], def_title, THUMB_PATH)
 
