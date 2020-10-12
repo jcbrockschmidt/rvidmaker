@@ -3,6 +3,7 @@
 """Creates a compilation of top videos from r/dankvideos"""
 
 from better_profanity import Profanity
+from datetime import timedelta
 import os
 from rvidmaker.editor import VideoCompiler
 from rvidmaker.readers.reddit import RedditReader
@@ -12,6 +13,7 @@ from rvidmaker.utils import shorten_title
 SUBREDDIT = "dankvideos"
 OUTPUT_DIR = "output"
 VID_PATH = os.path.join(OUTPUT_DIR, "video.mp4")
+DESC_PATH = os.path.join(OUTPUT_DIR, "description.txt")
 THUMB_PATH = os.path.join(OUTPUT_DIR, "thumbnail.png")
 # Path to text file containing words to censor.
 CENSOR_PATH = "censor.txt"
@@ -94,7 +96,21 @@ def main():
     compiler = VideoCompiler(censor=censor)
     for v in videos:
         compiler.add_video(v)
-    compiler.render_video(SIZE, VID_PATH)
+    manifest = compiler.render_video(SIZE, VID_PATH)
+
+    # Create video description.
+    print("Creating description...")
+    desc_lines = []
+    for entry in manifest:
+        title = blocklist.censor(entry.video.get_title())
+        title = censor.censor(title)
+        timestamp = timedelta(seconds=int(entry.timestamp))
+        line = "{ts} - {title}".format(ts=timestamp, title=title)
+        desc_lines.append(line)
+    desc_lines.append("")
+    desc = '\n'.join(desc_lines)
+    with open(DESC_PATH, 'w') as f:
+        f.write(desc)
 
     # Create our thumbnail using the top-scored video with no words or phrases in the blocklist.
     print("Creating thumbnail...")

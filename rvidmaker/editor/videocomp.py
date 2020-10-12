@@ -1,5 +1,6 @@
 """Creates a compilation of video clips"""
 
+from bisect import insort
 from concurrent.futures import ThreadPoolExecutor
 from glob import glob
 from moviepy.editor import (
@@ -21,6 +22,67 @@ _DOWNLOAD_DIR = ".downloaded"
 class NotEnoughVideos(Exception):
     """Raised when there are not enough videos for a compilation"""
 
+
+class ManifestEntry:
+    """Store the timestamp where a video is start playing in a compilation"""
+
+    def __init__(self, video, timestamp):
+        """
+        Args:
+            video (VideoRef): Video that this entry is for.
+            timestamp (float): Time video starts playing in seconds.
+        """
+        self._video = video
+        self._timestamp = timestamp
+
+    @property
+    def video(self):
+        """
+        VideoRef: The video the entry is for.
+        """
+        return self._video
+
+    @property
+    def timestamp(self):
+        """
+        float: The time the video starts playing in seconds.
+        """
+        return self._timestamp
+
+    def __lt__(self, other):
+        return self.timestamp < other.timestamp
+
+    def __str__(self):
+        return 'ManifestEntry("{}", {})'.format(self.video.get_title(), self.timestamp)
+
+
+class Manifest:
+    """
+    Collection of timestamps for video clips. Entries are sorted in ascending order by timestamps.
+    """
+
+    def __init__(self):
+        self._entries = []
+
+    def add_entry(self, video, start_time):
+        """
+        Adds an entry to the manifest.
+
+        Args:
+            video (VideoRef): Video the entry is for.
+            start_time (float): Time the video starts in seconds.
+        """
+        entry = ManifestEntry(video, start_time)
+        insort(self._entries, entry)
+
+    def __getitem__(self, i):
+        return self._entries[i]
+
+    def __len__(self):
+        return len(self._entries)
+
+    def __iter__(self):
+        return iter(self._entries)
 
 class VideoCompiler:
     """Creates a compilation of video clips"""
@@ -132,6 +194,8 @@ class VideoCompiler:
             )
 
         # Load all clips.
+        timestamp = 0
+        manifest = Manifest()
         clips = []
         w, h = res
         for v, path in dl:
@@ -180,8 +244,14 @@ class VideoCompiler:
             )
             clips.append(clip)
 
+            # Update manifest.
+            manifest.add_entry(v, timestamp)
+            timestamp += clip.duration
+
         final = concatenate_videoclips(clips)
         final.write_videofile(output_path)
 
         # Delete all downloaded videos.
         rmtree(_DOWNLOAD_DIR)
+
+        return manifest
