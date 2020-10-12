@@ -1,6 +1,5 @@
 """Implements a reference for videos hosted on Reddit"""
 
-import asyncio
 import ffmpeg
 import os
 import requests
