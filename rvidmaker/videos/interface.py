@@ -1,6 +1,10 @@
 """Provides an interface for references to remote videos"""
 
 
+class DownloadException(Exception):
+    """Raised when downloading a video fails"""
+
+
 class VideoRef:
     """References a remote video"""
 
@@ -13,7 +17,11 @@ class VideoRef:
                 will be appended.
 
         Returns:
-            str: Path video is written to. Extension may differ from `output_path`.
+            str/None: Path video is written to. Extension may differ from `output_path`.
+                `None` on failure.
+
+        Raises:
+            DownloadException: If something fails.
         """
         raise NotImplementedError
 

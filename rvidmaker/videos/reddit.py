@@ -1,12 +1,12 @@
 """Implements a reference for videos hosted on Reddit"""
 
 import asyncio
-from ffmpeg import FFmpeg
+import ffmpeg
 import os
 import requests
 
 from rvidmaker.utils import get_random_path
-from .interface import VideoRef
+from .interface import DownloadException, VideoRef
 
 _TEMP_DOWNLOAD_DIR = "/tmp/rvidmaker"
 
@@ -24,12 +24,6 @@ class RedditVideoRef(VideoRef):
         self.audio_url = audio_url
 
     def download(self, output_path):
-        """
-        Downloads the referenced video.
-
-        Args:
-            output_path (str): Path to write the video to. Must have a valid video format extension.
-        """
         # Check video extension
         base, ext = os.path.splitext(output_path)
         if ext != "mp4":
@@ -38,6 +32,7 @@ class RedditVideoRef(VideoRef):
         # Download video and audio to temporary files.
         temp_video_path = get_random_path(_TEMP_DOWNLOAD_DIR, "mp4")
         temp_audio_path = get_random_path(_TEMP_DOWNLOAD_DIR, "mp4")
+        # TODO: Download video and audio asynchronously
         with open(temp_video_path, "wb") as f:
             req = requests.get(self.video_url)
             # TODO: Check `req.status_code`
@@ -48,15 +43,14 @@ class RedditVideoRef(VideoRef):
             f.write(req.content)
 
         # Combine video and audio
-        ffmpeg = (
-            FFmpeg()
-            .option("y")
-            .input(temp_video_path)
-            .input(temp_audio_path)
-            .output(output_path, {"codec:v": "copy", "codec:a": "aac"})
-        )
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(ffmpeg.execute())
+        video = ffmpeg.input(temp_video_path)
+        audio = ffmpeg.input(temp_audio_path)
+        try:
+            ffmpeg.concat(video, audio, v=1, a=1).output(output_path).run(
+                quiet=True, overwrite_output=True
+            )
+        except ffmpeg.Error:
+            raise DownloadException("Failed to combine video and audio with FFmpeg")
 
         # Delete temporary files
         os.remove(temp_video_path)
