@@ -1,3 +1,4 @@
+from bisect import insort
 import os
 from rake_nltk import Rake
 import random
@@ -88,3 +89,47 @@ def shorten_title(title, max_title_len, alphanum_only=True):
         new_title = append_title
 
     return new_title
+
+
+def extract_tags(
+    videos, blocklist=None, max_tag_len=0, max_total_chars=0, max_total_tags=0
+):
+    """
+    Creates tags from a list of videos.
+
+    Args:
+        videos (list): List videos as `rvidmaker.videos.VideoRef`s. Tags are extracted from
+            their titles.
+        blocklist (better_profanity.Profanity): Filters out tags with undesirable words or phrases.
+            `None` to not perform any filtering.
+        max_tag_len (int): Maximum character length of a tag. 0 for no maximum length.
+        max_total_chars (int): Maximum total number of characters. 0 for no limit.
+        max_total_tags (int): Maximum total character length. 0 for no limit.
+    """
+    ranked_tags = []
+    filter = re.compile("[^a-z ]")
+    r = Rake()
+    for v in videos:
+        title = filter.sub("", v.get_title().lower())
+        r.extract_keywords_from_text(title)
+        phrases = r.get_ranked_phrases_with_scores()
+        for score, phrase in phrases:
+            if score <= 1:
+                continue
+            if max_tag_len > 0 and len(phrase) > max_tag_len:
+                continue
+            if blocklist is not None:
+                if blocklist.contains_profanity(phrase):
+                    continue
+            insort(ranked_tags, (score, phrase))
+    tags = set()
+    total_chars = 0
+    for _, tag in reversed(ranked_tags):
+        if max_total_chars > 0:
+            total_chars += len(tag)
+            if total_chars >= max_total_chars:
+                break
+        tags.add(tag)
+        if max_total_tags > 0 and len(tags) >= max_total_tags:
+            break
+    return tags
