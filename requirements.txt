@@ -1,8 +1,11 @@
+apiclient==1.0.4
 better-profanity>=0.6.1
 ffmpeg-python>=0.2.0
 gtts>=2.1.1
+httplib2==0.18.1
 moviepy>=1.0.3
 nltk>=3.5
+oauth2client==4.1.3
 Pillow>=7.2.0
 praw>=7.0.0
 rake-nltk>=1.0.4
