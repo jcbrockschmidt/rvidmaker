@@ -84,6 +84,7 @@ class Manifest:
     def __iter__(self):
         return iter(self._entries)
 
+
 class VideoCompiler:
     """Creates a compilation of video clips"""
 
@@ -129,10 +130,7 @@ class VideoCompiler:
             print('Downloading "{}"...'.format(video.get_title()))
             actual_path = video.download(path)
         except DownloadException as e:
-            # TODO: Handle deleting in the download function itself
             print('WARNING: Failed to download "{}": {}'.format(video.get_title(), e))
-            for path in glob("{}.*".format(path)):
-                os.remove(path)
             return None
         print('Finished downloading "{}"'.format(video.get_title()))
         return video, actual_path
@@ -207,12 +205,13 @@ class VideoCompiler:
             clip = VideoFileClip(path)
 
             # Adjust audio levels.
-            if clip.audio.max_volume() > 0:
-                audio = clip.audio.fx(afx.audio_normalize)
-                max_volume = clip.audio.max_volume()
-                volume_mult = audio_level / max_volume
-                clip.set_audio(audio)
-                clip = clip.fx(afx.volumex, volume_mult)
+            if clip.audio is not None:
+                if clip.audio.max_volume() > 0:
+                    audio = clip.audio.fx(afx.audio_normalize)
+                    max_volume = clip.audio.max_volume()
+                    volume_mult = audio_level / max_volume
+                    clip.set_audio(audio)
+                    clip = clip.fx(afx.volumex, volume_mult)
 
             # Resize video.
             cw, ch = clip.size

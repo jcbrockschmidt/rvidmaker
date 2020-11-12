@@ -5,6 +5,7 @@ from datetime import datetime
 import json
 import os
 import praw
+import requests
 from urllib.parse import urlsplit, urlunsplit
 
 from rvidmaker.utils import random_string
@@ -86,7 +87,10 @@ class RedditArticle:
         """
         self._article = praw_article
         self.title = self._article.title
-        self.author = self._article.author.name
+        if self._article.author is not None:
+            self.author = self._article.author.name
+        else:
+            self.author = None
         self.text = self._article.selftext
         self.category = self._article.category
         self.id = self._article.id
@@ -232,6 +236,11 @@ class RedditArticle:
             audio_url[3] = ""
             audio_url[4] = ""
             audio_url = urlunsplit(audio_url)
+
+            # Check if audio exists.
+            req = requests.head(audio_url)
+            if req.status_code != 200:
+                audio_url = None
 
             return RedditVideoRef(self.title, self.author, video_url, audio_url)
         else:
