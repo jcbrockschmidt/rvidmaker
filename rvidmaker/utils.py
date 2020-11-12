@@ -46,26 +46,26 @@ def get_random_path(root, ext):
             return path
 
 
-def shorten_title(title, max_title_len, alphanum_only=True):
+def shorten_title(title, max_title_len, alpha_only=True):
     """
     Shortens a title using important phrases and keywords in the title.
 
     Args:
         title (str): Title to shorten.
         max_title_len (int): Maximum length of the final title.
-        alphanum_only (bool): Whether to only use alphanumeric characters.
+        alpha_only (bool): Whether to only use alphabetic characters.
 
     Returns:
         str: Shortened, all lower-case title with a length less than `max_title_len`.
     """
     title = title.lower()
-    if alphanum_only:
-        filter = re.compile("[^a-z0-9 ]")
-        title = filter.sub("", title)
-
     if len(title) <= max_title_len:
         # Title is already short enough.
         return title
+
+    if alpha_only:
+        filter = re.compile("[^a-z ]")
+        title = filter.sub("", title)
 
     # Try using the highest ranked phrase from the title.
     r = Rake()
