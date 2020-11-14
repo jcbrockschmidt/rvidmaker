@@ -1,0 +1,20 @@
+[reddit.compilation]
+subreddit = "IdiotsInCars"
+min_score = 100
+min_clip_duration = 2
+max_clip_duration = 60
+clip_limit = 50
+resolution = [ 1920, 1080 ]
+censor_video = true
+censor_metadata = true
+default_tags = [
+  "reddit",
+  "compilation",
+  "reddit compilation",
+  "funny meme compilation",
+  "videos i found on reddit",
+  "idiotsincars",
+  "idiots in cars",
+  "car crashes",
+  "car accidents",
+]
