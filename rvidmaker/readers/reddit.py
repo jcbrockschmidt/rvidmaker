@@ -2,16 +2,16 @@
 
 from copy import copy
 from datetime import datetime
-import json
 import os
 import praw
 import requests
+import toml
 from urllib.parse import urlsplit, urlunsplit
 
 from rvidmaker.utils import random_string
 from rvidmaker.videos import RedditVideoRef
 
-CONFIG_PATH = "config.json"
+CONFIG_PATH = "reddit_api_config.toml"
 USER_AGENT = "rvidmaker 0.0.1"
 VALID_TIME_FILTERS = ("all", "day", "hour", "month", "week", "year")
 
@@ -263,7 +263,7 @@ class RedditReader:
             raise ConfigNotFound
 
         with open(CONFIG_PATH) as f:
-            config = json.load(f)
+            config = toml.load(f)
 
         try:
             self.reddit = praw.Reddit(
