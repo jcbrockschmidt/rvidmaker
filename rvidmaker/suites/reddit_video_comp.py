@@ -1,6 +1,5 @@
 """Provides a suite for generating compilations of videos from subreddits"""
 
-from better_profanity import Profanity
 from datetime import timedelta
 import os
 import toml
@@ -39,13 +38,9 @@ class RedditVideoCompSuite(Suite):
     def __init__(self):
         self.configured = False
 
-    def config(self, profile_path, censor_path=None, block_path=None):
+    def config(self, profile_path, censor=None, blocker=None):
         if not os.path.isfile(profile_path):
             raise SuiteConfigException('"{}" is not a file'.format(profile_path))
-        if censor_path is not None and not os.path.isfile(censor_path):
-            raise SuiteConfigException('"{}" is not a file'.format(censor_path))
-        if block_path is not None and not os.path.isfile(block_path):
-            raise SuiteConfigException('"{}" is not a file'.format(block_path))
 
         try:
             data = toml.load(profile_path)
@@ -92,17 +87,15 @@ class RedditVideoCompSuite(Suite):
                 )
             )
 
-        if self._censor_video and censor_path is None:
+        if self._censor_video and censor is None:
             raise SuiteConfigException("Profile requires a censor for the video")
-        if self._censor_metadata and block_path is None:
+        if self._censor_metadata and blocker is None:
             raise SuiteConfigException("Profile requires a censor for metadata")
 
         if self._censor_video:
-            self._censor = Profanity()
-            self._censor.load_censor_words_from_file(censor_path)
+            self._censor = censor
         if self._censor_metadata:
-            self._blocklist = Profanity()
-            self._censor.load_censor_words_from_file(block_path)
+            self._blocker = blocker
 
         self.configured = True
 
@@ -183,7 +176,7 @@ class RedditVideoCompSuite(Suite):
         tags = self._default_tags.copy()
         tags_len = sum([len(t) for t in tags])
         chars_left = YT_TAGS_MAX_TOTAL_CHAR - tags_len
-        blocklist = self._censor_metadata and self._blocklist or None
+        blocklist = self._censor_metadata and self._blocker or None
         extra_tags = extract_tags(
             videos,
             blocklist=blocklist,
@@ -243,7 +236,7 @@ class RedditVideoCompSuite(Suite):
         thumb_made = False
         for v in used_videos:
             if self._censor_metadata:
-                if self._blocklist.contains_profanity(v.get_title()):
+                if self._blocker.contains_profanity(v.get_title()):
                     continue
             print('Using "{}" for thumbnail...'.format(v.get_title()))
             self._make_thumbnail(v, v.get_title(), thumb_path)

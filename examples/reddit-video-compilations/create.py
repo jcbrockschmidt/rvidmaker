@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+from better_profanity import Profanity
 import os
 from rvidmaker.suites import (
     RedditVideoCompSuite,
@@ -16,10 +17,26 @@ def main(profile_path, output_dir, censor_path=None, block_path=None):
     if not os.path.isfile(profile_path):
         print('"{}" is not a file'.format(profile_path))
         return
+    if censor_path and not os.path.isfile(censor_path):
+        print('"{}" is not a file'.format(censor_path))
+        return
+    if block_path and not os.path.isfile(block_path):
+        print('"{}" is not a file'.format(block_path))
+        return
 
     reddit = RedditVideoCompSuite()
     try:
-        reddit.config(profile_path, censor_path, block_path)
+        if censor_path:
+            censor = Profanity()
+            censor.load_censor_words_from_file(censor_path)
+        else:
+            censor = None
+        if block_path:
+            blocker = Profanity()
+            blocker.load_censor_words_from_file(block_path)
+        else:
+            blocker = None
+        reddit.config(profile_path, censor, blocker)
     except SuiteConfigException as e:
         print("Failed to configure suite: {}".format(e))
         return

@@ -12,16 +12,16 @@ class SuiteGenerateException(Exception):
 class Suite:
     """Interface for video generating suites"""
 
-    def config(self, profile_path, censor_path=None, block_path=None):
+    def config(self, profile_path, censor=None, blocker=None):
         """
         Configures the suite.
 
         Args:
-            profile_path: Path to a TOML file containing profile information.
-            censor_path: File containing words and phrases to censor in the video.
-                `None` to not censor the video.
-            block_path: File containing words and phrases to exclude from metadata.
-                `None` to not exclude anything.
+            profile_path (str): Path to a TOML file containing profile information.
+            censor_path (better_profanity.Profanity): File containing words and phrases to censor
+                in the video. `None` to not censor the video.
+            block_path (better_profanity.Profanity): File containing words and phrases to exclude
+                from metadata. `None` to not exclude anything.
 
         Raises:
             SuiteConfigException: If configuration fails.
