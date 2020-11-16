@@ -13,6 +13,7 @@ from rvidmaker.videos import RedditVideoRef
 
 CONFIG_PATH = "config.json"
 USER_AGENT = "rvidmaker 0.0.1"
+VALID_TIME_FILTERS = ("all", "day", "hour", "month", "week", "year")
 
 
 class ConfigNotFound(Exception):
@@ -336,6 +337,10 @@ class RedditReader:
         Returns:
             list: List of `RedditArticle`s sorted in descending order by score.
         """
+        if time_filter not in VALID_TIME_FILTERS:
+            raise RedditApiException(
+                "time_filter must be one of {}".format(VALID_TIME_FILTERS)
+            )
         limit = max(0, min(limit, 100))
         try:
             sub = self.reddit.subreddit(subreddit)
