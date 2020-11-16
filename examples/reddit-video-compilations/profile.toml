@@ -1,5 +1,6 @@
 [reddit.compilation]
 subreddit = "IdiotsInCars"
+time_frame = "week"
 min_score = 100
 min_clip_duration = 2
 max_clip_duration = 60

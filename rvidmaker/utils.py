@@ -25,11 +25,11 @@ def random_string(n):
     return s
 
 
-def get_random_path(root, ext):
+def get_random_path(root, ext=None):
     """
     Args:
         root (str): Directory to generate path within.
-        ext (str): File extension for the random path.
+        ext (str): File extension for the random path. None for no extension.
 
     Returns:
         str: A random, unique path within the provided root directory.
@@ -41,7 +41,11 @@ def get_random_path(root, ext):
         raise DirNotFound
     while True:
         rand_str = random_string(10)
-        path = os.path.join(root, "{}.{}".format(rand_str, ext))
+        if ext is None:
+            name = rand_str
+        else:
+            name = "{}.{}".format(rand_str, ext)
+        path = os.path.join(root, name)
         if not os.path.exists(path):
             return path
 
