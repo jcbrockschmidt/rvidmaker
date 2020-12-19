@@ -8,9 +8,15 @@ from toml import TomlDecodeError
 from rvidmaker.editor import VideoCompiler
 from rvidmaker.readers.reddit import RedditReader
 from rvidmaker.thumbnails import create_split_thumbnail
-from rvidmaker.utils import extract_tags, get_random_path, shorten_title
+from rvidmaker.uploaders import Payload
+from rvidmaker.utils import (
+    extract_tags,
+    get_random_path,
+    shorten_title,
+    toml_get_and_check,
+    TomlGetCheckException,
+)
 from .interface import Suite, SuiteConfigException, SuiteGenerateException
-from .utils import get_and_check, GetCheckTypeException
 
 # TODO: Move tag limits to YouTubeUploader
 # Maximum number of characters for a single tag on YouTube.
@@ -19,8 +25,11 @@ YT_TAG_MAX_CHARS = 30
 YT_TAGS_MAX_TOTAL_CHAR = 500
 # Maximum number of articles to scrape in a batch.
 ARTICLE_LIMIT = 100
+# Maximum character length of the primary video title (before adding subreddit information).
+# Only used when dynamically generating a title. Does not affect the default title.
+MAX_TITLE_LEN = 50
 # Maximum character length of the title in the thumbnail.
-MAX_TITLE_LEN = 20
+MAX_THUMB_TITLE_LEN = 20
 # Directory to temporarily download videos from a subreddit to.
 TEMP_DIR = "/tmp/rvidmaker/reddit-video-comp/"
 # Valid time frames in the TOML profile file.
@@ -53,31 +62,35 @@ class RedditVideoCompSuite(Suite):
                 '"{}" has no "reddit.compilation" section'.format(profile_path)
             )
         profile = data["reddit"]["compilation"]
-        if "subreddit" not in profile:
-            raise SuiteConfigException(
-                'Profile has no "subreddit" field'.format(profile_path)
-            )
-
         try:
-            self._subreddit = get_and_check(profile, "subreddit", str)
-            self._time_frame = get_and_check(profile, "time_frame", str, default="week")
-            self._min_score = get_and_check(profile, "min_score", int)
-            self._min_clip_dur = get_and_check(profile, "min_clip_duration", int)
-            self._max_clip_dur = get_and_check(profile, "max_clip_duration", int)
-            self._clip_limit = get_and_check(profile, "clip_limit", int, default=50)
-            self._res = get_and_check(
+            self._subreddit = toml_get_and_check(
+                profile, "subreddit", str, required=True
+            )
+            self._default_title = toml_get_and_check(
+                profile, "default_title", str, required=True
+            )
+            self._time_frame = toml_get_and_check(
+                profile, "time_frame", str, default="week"
+            )
+            self._min_score = toml_get_and_check(profile, "min_score", int)
+            self._min_clip_dur = toml_get_and_check(profile, "min_clip_duration", int)
+            self._max_clip_dur = toml_get_and_check(profile, "max_clip_duration", int)
+            self._clip_limit = toml_get_and_check(
+                profile, "clip_limit", int, default=50
+            )
+            self._res = toml_get_and_check(
                 profile, "resolution", list, int, default=[1920, 1080]
             )
-            self._censor_video = get_and_check(
+            self._censor_video = toml_get_and_check(
                 profile, "censor_video", bool, default=False
             )
-            self._censor_metadata = get_and_check(
+            self._censor_metadata = toml_get_and_check(
                 profile, "censor_metadata", bool, default=False
             )
             self._default_tags = set(
-                get_and_check(profile, "default_tags", list, str, default=list())
+                toml_get_and_check(profile, "default_tags", list, str, default=list())
             )
-        except GetCheckTypeException as e:
+        except TomlGetCheckException as e:
             raise SuiteConfigException("Invalid TOML profile: {}".format(str(e)))
 
         if self._time_frame not in VALID_TIME_FRAMES:
@@ -135,7 +148,7 @@ class RedditVideoCompSuite(Suite):
             title (str): Title to render on thumbnail.
             output_path (str): Path to write the thumbnail to.
         """
-        short_title = shorten_title(title, MAX_TITLE_LEN)
+        short_title = shorten_title(title, MAX_THUMB_TITLE_LEN)
         temp_vid_dl = vid.download(get_random_path(TEMP_DIR))
         thumb = create_split_thumbnail(temp_vid_dl, short_title)
         thumb.save(output_path)
@@ -199,10 +212,9 @@ class RedditVideoCompSuite(Suite):
         elif not os.path.isdir(output_dir):
             raise SuiteGenerateException('"{}" is not a directory'.format(output_dir))
 
-        vid_path = os.path.join(output_dir, "video.mp4")
-        desc_path = os.path.join(output_dir, "description.txt")
-        tags_path = os.path.join(output_dir, "tags.txt")
-        thumb_path = os.path.join(output_dir, "thumbnail.png")
+        payload = Payload()
+        payload.video = "video.mp4"
+        payload.thumb = "thumbnail.png"
 
         print("Scaping subreddit r/{} for videos...".format(self._subreddit))
         videos = self._get_videos_from_reddit()
@@ -211,38 +223,52 @@ class RedditVideoCompSuite(Suite):
             return
 
         print("Rendering compilation of {} videos...".format(len(videos)))
+        video_path = os.path.join(output_dir, payload.video)
         censor = self._censor_video and self._censor or None
         compiler = VideoCompiler(censor=censor)
         for v in videos:
             compiler.add_video(v)
-        manifest = compiler.render_video(self._res, vid_path)
+        manifest = compiler.render_video(self._res, video_path)
         used_videos = [entry.video for entry in manifest]
+
+        print("Creating title...")
+        # Find a video to use for out title and thumbnail.
+        title_video = None
+        for v in used_videos:
+            if self._censor_metadata:
+                if self._blocker.contains_profanity(v.get_title()):
+                    continue
+            title_video = v
+            thumb_made = True
+            break
+        if title_video is None:
+            primary_title = self._default_title
+            print("No appropriate video found. Using default title")
+        else:
+            primary_title = shorten_title(v.get_title(), MAX_TITLE_LEN).title()
+            print('Using video "{}" for title'.format(primary_title))
+        payload.title = "{} | r/{}".format(primary_title, self._subreddit)
 
         print("Creating description...")
         desc = self._make_description(
             "Subscribe for more video compilations!",
             manifest,
         )
-        with open(desc_path, "w") as f:
-            f.write(desc)
+        payload.desc = desc
 
         print("Creating tags...")
         tags = self._make_tags(used_videos)
-        with open(tags_path, "w") as f:
-            f.write(",".join(tags))
+        payload.tags = tuple(tags)
 
         # Create our thumbnail using the top-scored video with no words or phrases in the blocklist.
         print("Creating thumbnail...")
-        thumb_made = False
-        for v in used_videos:
-            if self._censor_metadata:
-                if self._blocker.contains_profanity(v.get_title()):
-                    continue
-            print('Using "{}" for thumbnail...'.format(v.get_title()))
-            self._make_thumbnail(v, v.get_title(), thumb_path)
-            thumb_made = True
-            break
+        thumb_path = os.path.join(output_dir, payload.thumb)
         # No video had a safe title. Use a default title on top of a thumbnail of the first video.
-        if not thumb_made:
-            print("Using default title for thumbnail...")
+        if title_video is None:
+            # Use the first video with the subreddit overlayed.
             self._make_thumbnail(used_videos[0], self._subreddit, thumb_path)
+        else:
+            self._make_thumbnail(title_video, title_video.get_title(), thumb_path)
+
+        payload_path = os.path.join(output_dir, "payload.toml")
+        payload.dump(payload_path)
