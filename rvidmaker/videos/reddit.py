@@ -17,18 +17,20 @@ if not os.path.exists(_TEMP_DOWNLOAD_DIR):
 class RedditVideoRef(VideoRef):
     """References videos hosted on Reddit"""
 
-    def __init__(self, title, author, video_url, audio_url=None):
+    def __init__(self, title, author, video_url, audio_url=None, duration=None):
         """
         Args:
             title (str): Title of the video.
             author (str): Author of the video.
             video_url (str): Remote URL for video.
-            audio_url (str): Remote URL for audio. `None` if there is no audio.
+            audio_url (str): Remote URL for audio. None if there is no audio.
+            duration (float): The duration of the video if known, and None otherwise.
         """
         self.title = title
         self.author = author
         self.video_url = video_url
         self.audio_url = audio_url
+        self.duration = duration
 
     def download(self, output_path):
         # Check video extension
@@ -86,3 +88,6 @@ class RedditVideoRef(VideoRef):
 
     def get_author(self):
         return self.author
+
+    def get_duration(self):
+        return self.duration

@@ -38,3 +38,10 @@ class VideoRef:
             str: The author of the video.
         """
         raise NotImplementedError
+
+    def get_duration(self):
+        """
+        Returns:
+           float: The duration of a video in seconds. None if the duration is not known.
+        """
+        return None

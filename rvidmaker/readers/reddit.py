@@ -223,6 +223,7 @@ class RedditArticle:
         if "reddit_video" in self._media:
             # Scrape a video hosted by Reddit
             reddit_video = self._media["reddit_video"]
+            duration = float(reddit_video["duration"])
 
             # Get video and audio URLs
             video_url = reddit_video["fallback_url"]
@@ -243,7 +244,9 @@ class RedditArticle:
             if req.status_code != 200:
                 audio_url = None
 
-            return RedditVideoRef(self.title, self.author, video_url, audio_url)
+            return RedditVideoRef(
+                self.title, self.author, video_url, audio_url, duration
+            )
         else:
             # Scrape a YouTube video
             raise NotImplementedError
@@ -292,7 +295,8 @@ class RedditReader:
 
         Args:
             subreddit (str): Name of subreddit.
-            limit (int): Maximum number of articles to read where 1 <= `limit` <= 100.
+            limit (int): Maximum number of articles to read where `limit` >= 1.
+                If None, then fetch as many articles as possible.
             min_score (int): Minimum score of articles to include. None for no minimum.
             min_age (int): Minimum age in hours of articles to include. None for no minimum.
 
@@ -302,7 +306,7 @@ class RedditReader:
         Returns:
             list: List of `RedditArticle`s sorted in descending order by score.
         """
-        limit = max(0, min(limit, 100))
+        limit = limit and max(1, limit) or None
         try:
             sub = self.reddit.subreddit(subreddit)
             raw_articles = sub.hot(limit=limit)
@@ -325,7 +329,8 @@ class RedditReader:
         Args:
             subreddit (str): Name of subreddit.
             time_filter (str): One of "all", "day", "hour", "month", "week", "year".
-            limit (int): Maximum number of articles to read where 1 <= `limit` <= 100.
+            limit (int): Maximum number of articles to read where `limit` >= 1.
+                If None, then fetch as many articles as possible.
             min_score (int): Minimum score of articles to include. None for no minimum.
             min_age (int): Minimum age in hours of articles to include. None for no minimum.
 
@@ -339,7 +344,7 @@ class RedditReader:
             raise RedditApiException(
                 "time_filter must be one of {}".format(VALID_TIME_FILTERS)
             )
-        limit = max(0, min(limit, 100))
+        limit = limit and max(1, limit) or None
         try:
             sub = self.reddit.subreddit(subreddit)
             raw_articles = sub.top(time_filter=time_filter, limit=limit)
