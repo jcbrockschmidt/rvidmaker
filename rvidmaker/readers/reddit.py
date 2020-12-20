@@ -6,7 +6,7 @@ import os
 import praw
 import requests
 import toml
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 from rvidmaker.utils import random_string
 from rvidmaker.videos import RedditVideoRef
@@ -234,7 +234,7 @@ class RedditArticle:
                 audio_basename = "DASH_audio.mp4"
             else:
                 audio_basename = "audio"
-            audio_url[2] = os.path.join(os.path.dirname(audio_url_path), audio_basename)
+            audio_url[2] = urljoin(audio_url_path, audio_basename)
             audio_url[3] = ""
             audio_url[4] = ""
             audio_url = urlunsplit(audio_url)
