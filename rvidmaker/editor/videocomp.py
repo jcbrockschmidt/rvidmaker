@@ -53,7 +53,7 @@ class ManifestEntry:
         return self.timestamp < other.timestamp
 
     def __str__(self):
-        return 'ManifestEntry("{}", {})'.format(self.video.get_title(), self.timestamp)
+        return 'ManifestEntry("{}", {})'.format(self.video.title, self.timestamp)
 
 
 class Manifest:
@@ -86,7 +86,12 @@ class Manifest:
 
 
 class VideoCompiler:
-    """Creates a compilation of video clips"""
+    """
+    Creates a compilation of video clips.
+
+    Attributes:
+        video_count (int): Number of videos added by `add_video`, ready to be compiled.
+    """
 
     def __init__(self, censor):
         """
@@ -106,11 +111,8 @@ class VideoCompiler:
         """
         self._videos.append(video)
 
-    def get_video_count(self):
-        """
-        Returns:
-           int: Number of videos added by `add_video`, ready to be compiled.
-        """
+    @property
+    def video_count(self):
         return len(self._videos)
 
     @staticmethod
@@ -127,12 +129,12 @@ class VideoCompiler:
                 `None` on failure.
         """
         try:
-            print('Downloading "{}"...'.format(video.get_title()))
+            print('Downloading "{}"...'.format(video.title))
             actual_path = video.download(path)
         except DownloadException as e:
-            print('WARNING: Failed to download "{}": {}'.format(video.get_title(), e))
+            print('WARNING: Failed to download "{}": {}'.format(video.title, e))
             return None
-        print('Finished downloading "{}"'.format(video.get_title()))
+        print('Finished downloading "{}"'.format(video.title))
         return video, actual_path
 
     def _batch_dl(self, max_workers=4):
@@ -179,7 +181,7 @@ class VideoCompiler:
             NotEnoughVideos: There are fewer than two video provided, or fewer than two videos are
                 successfully downloaded.
         """
-        if self.get_video_count() < 2:
+        if self.video_count < 2:
             raise NotEnoughVideos("Need at least 2 videos for a compilation")
 
         # Download videos.
@@ -197,8 +199,8 @@ class VideoCompiler:
         clips = []
         w, h = res
         for v, path in dl:
-            title = v.get_title()
-            author = v.get_author()
+            title = v.title
+            author = v.author
             if self._censor is not None:
                 title = self._censor.censor(title)
                 author = self._censor.censor(author)

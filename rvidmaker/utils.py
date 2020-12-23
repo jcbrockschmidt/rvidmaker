@@ -114,7 +114,7 @@ def extract_tags(
     filter = re.compile("[^a-z ]")
     r = Rake()
     for v in videos:
-        title = filter.sub("", v.get_title().lower())
+        title = filter.sub("", v.title.lower())
         r.extract_keywords_from_text(title)
         phrases = r.get_ranked_phrases_with_scores()
         for score, phrase in phrases:

@@ -32,18 +32,26 @@ class RedditVideoNotFound(Exception):
 
 
 class RedditComment:
-    """Represents a comment to a Reddit article"""
+    """
+    Represents a comment to a Reddit article.
+
+    Attributes:
+        author (str): Username of the comment's author. None for no author.
+        child (RedditComment): The child comment. None if no child.
+        score (int): Score of the comment.
+        text (int): Body of the comment.
+    """
 
     def __init__(self, author, text, score):
         """
         Args:
-            author (str): The comment's author.
-            text (str): The comment's text.
-            score (int): The comment's score.
+            author (str): Username of the comment's author. None for no author.
+            text (str): Body of the comment.
+            score (int): Score of the comment.
         """
-        self.author = author
-        self.text = text
-        self.score = score
+        self._author = author
+        self._text = text
+        self._score = score
         self._child = None
 
     @staticmethod
@@ -57,28 +65,41 @@ class RedditComment:
         score = praw_comment.score
         return RedditComment(author, text, score)
 
-    def set_child(self, child):
-        """
-        Sets the child comment for a comment. Can only set one child.
+    @property
+    def author(self):
+        return self._author
 
-        Args:
-            child (RedditComment): The child comment. None to set no child.
-        """
-        self._child = None
-
-    def get_child(self):
-        """
-        Gets the child comment if one exists.
-
-        Returns:
-            RedditComment: The child comment, if it exists.
-            None: If there is no child.
-        """
+    @property
+    def child(self):
         return copy(self._child)
+
+    @child.setter
+    def child(self, child):
+        self._child = child
+
+    @property
+    def score(self):
+        return self._score
+
+    @property
+    def text(self):
+        return self._text
 
 
 class RedditArticle:
-    """Represents a Reddit article"""
+    """
+    Represents a Reddit article.
+
+    Attributes:
+        age (float): Hours since the article was posted.
+        author (str): Username of the article's author. None for no author.
+        category (str): Category of the article. None for no category.
+        id (str): Unique ID for the article as given by Reddit.
+        nsfw (bool): Whether the articles is labeled as not safe for work.
+        score (int): Score of the article.
+        text (str): Body of the article.
+        url (str): HTTP/S URL for the article.
+    """
 
     def __init__(self, praw_article):
         """
@@ -89,28 +110,51 @@ class RedditArticle:
         self._article = praw_article
         self.title = self._article.title
         if self._article.author is not None:
-            self.author = self._article.author.name
+            self._author = self._article.author.name
         else:
-            self.author = None
-        self.text = self._article.selftext
-        self.category = self._article.category
-        self.id = self._article.id
-        self.url = self._article.url
-        self.score = self._article.score
-        self.nsfw = self._article.over_18
+            self._author = None
+        self._text = self._article.selftext
+        self._category = self._article.category
+        self._id = self._article.id
+        self._url = self._article.url
+        self._score = self._article.score
+        self._nsfw = self._article.over_18
         self._time_created = self._article.created_utc
         self._media = self._article.media
 
-    def get_age(self):
-        """
-        Gets the time that has elapse since the article was posted.
-
-        Returns:
-            float: Hours since posting.
-        """
+    @property
+    def age(self):
         curtime = datetime.now().timestamp()
         hours = (curtime - self._time_created) / (60 * 60)
         return hours
+
+    @property
+    def author(self):
+        self._author
+
+    @property
+    def category(self):
+        return self._category
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def nsfw(self):
+        return self._nsfw
+
+    @property
+    def score(self):
+        return self._score
+
+    @property
+    def text(self):
+        return self._text
+
+    @property
+    def url(self):
+        return self._url
 
     def _expand_comment(self, comment, praw_comment, max_depth, percent_thres):
         if max_depth <= 0:
@@ -129,7 +173,7 @@ class RedditArticle:
         if not best_reply is None:
             if best_reply.score > comment.score * percent_thres:
                 child = RedditComment.from_praw(best_reply)
-                comment.set_child(child)
+                comment.child = child
                 self._expand_comment(child, best_reply, max_depth - 1, percent_thres)
 
     def get_comments(self, max_comments=10, max_depth=2, percent_thres=0.5):
@@ -155,7 +199,7 @@ class RedditArticle:
             if not isinstance(comment, praw.models.reddit.comment.Comment):
                 continue
             praw_comments.append(comment)
-        praw_comments.sort(key=lambda x: x.score, reverse=True)
+            praw_comments.sort(key=lambda x: x.score, reverse=True)
 
         cnt = 0
         comments = []
@@ -284,7 +328,7 @@ class RedditReader:
                 if art.score < min_score:
                     continue
             if not min_age is None:
-                if art.get_age() < min_age:
+                if art.age < min_age:
                     continue
             filtered.append(art)
         return filtered

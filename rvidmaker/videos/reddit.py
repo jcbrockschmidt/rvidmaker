@@ -24,13 +24,13 @@ class RedditVideoRef(VideoRef):
             author (str): Author of the video.
             video_url (str): Remote URL for video.
             audio_url (str): Remote URL for audio. None if there is no audio.
-            duration (float): The duration of the video if known, and None otherwise.
+            duration (float): Duration of the video if known, and None otherwise.
         """
-        self.title = title
-        self.author = author
-        self.video_url = video_url
-        self.audio_url = audio_url
-        self.duration = duration
+        self._title = title
+        self._author = author
+        self._video_url = video_url
+        self._audio_url = audio_url
+        self._duration = duration
 
     def download(self, output_path):
         # Check video extension
@@ -42,22 +42,22 @@ class RedditVideoRef(VideoRef):
         temp_video_path = get_random_path(_TEMP_DOWNLOAD_DIR, "mp4")
         # TODO: Download video and audio asynchronously
         with open(temp_video_path, "wb") as f:
-            req = requests.get(self.video_url)
+            req = requests.get(self._video_url)
             if req.status_code != 200:
                 raise DownloadException(
                     "Failed to download video from {}: {} response".format(
-                        self.video_url, req.status_code
+                        self._video_url, req.status_code
                     )
                 )
             f.write(req.content)
-        if self.audio_url is not None:
+        if self._audio_url is not None:
             temp_audio_path = get_random_path(_TEMP_DOWNLOAD_DIR, "mp4")
             with open(temp_audio_path, "wb") as f:
-                req = requests.get(self.audio_url)
+                req = requests.get(self._audio_url)
                 if req.status_code != 200:
                     raise DownloadException(
                         "Failed to download video from {}: {} response".format(
-                            self.audio_url, req.status_code
+                            self._audio_url, req.status_code
                         )
                     )
                 f.write(req.content)
@@ -72,7 +72,6 @@ class RedditVideoRef(VideoRef):
             except ffmpeg.Error:
                 if os.path.exists(output_path):
                     os.remove(output_path)
-                print("ERROR:", output_path)  # DEBUG
                 raise DownloadException("Failed to combine video and audio with FFmpeg")
             finally:
                 # Delete temporary files
@@ -83,11 +82,14 @@ class RedditVideoRef(VideoRef):
 
         return output_path
 
-    def get_title(self):
-        return self.title
+    @property
+    def title(self):
+        return self._title
 
-    def get_author(self):
-        return self.author
+    @property
+    def author(self):
+        return self._author
 
-    def get_duration(self):
-        return self.duration
+    @property
+    def duration(self):
+        return self._duration

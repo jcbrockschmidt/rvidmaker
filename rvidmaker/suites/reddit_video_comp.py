@@ -168,7 +168,7 @@ class RedditVideoCompSuite(Suite):
             process = lambda s: s
         desc_lines = [process(message), ""]
         for entry in manifest:
-            title = process(entry.video.get_title())
+            title = process(entry.video.title)
             timestamp = timedelta(seconds=int(entry.timestamp))
             line = "{ts} - {title}".format(ts=timestamp, title=title)
             desc_lines.append(line)
@@ -236,7 +236,7 @@ class RedditVideoCompSuite(Suite):
         title_video = None
         for v in used_videos:
             if self._censor_metadata:
-                if self._blocker.contains_profanity(v.get_title()):
+                if self._blocker.contains_profanity(v.title):
                     continue
             title_video = v
             thumb_made = True
@@ -245,7 +245,7 @@ class RedditVideoCompSuite(Suite):
             primary_title = self._default_title
             print("No appropriate video found. Using default title")
         else:
-            primary_title = shorten_title(v.get_title(), MAX_TITLE_LEN).title()
+            primary_title = shorten_title(v.title, MAX_TITLE_LEN).title()
             print('Using video "{}" for title'.format(primary_title))
         payload.title = "{} | r/{}".format(primary_title, self._subreddit)
 
@@ -268,7 +268,7 @@ class RedditVideoCompSuite(Suite):
             # Use the first video with the subreddit overlayed.
             self._make_thumbnail(used_videos[0], self._subreddit, thumb_path)
         else:
-            self._make_thumbnail(title_video, title_video.get_title(), thumb_path)
+            self._make_thumbnail(title_video, title_video.title, thumb_path)
 
         payload_path = os.path.join(output_dir, "payload.toml")
         payload.dump(payload_path)

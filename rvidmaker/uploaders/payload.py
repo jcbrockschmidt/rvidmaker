@@ -4,6 +4,8 @@ import os
 import toml
 from toml import TomlDecodeError
 
+from rvidmaker.utils import toml_get_and_check, TomlGetCheckException
+
 
 class PayloadEncodeException(Exception):
     """Raised when encoding fails"""
@@ -112,13 +114,11 @@ class Payload:
             raise PayloadDecodeException("Failed to decode payload: {}".format(e))
         payload = Payload()
         try:
-            payload.video = toml_get_and_check(profile, "video", str, required=True)
-            payload.thumb = toml_get_and_check(profile, "thumbnail", str, required=True)
-            payload.title = toml_get_and_check(profile, "title", str, required=True)
-            payload.desc = toml_get_and_check(
-                profile, "description", str, required=True
-            )
-            payload.tags = toml_get_and_check(profile, "tags", list, str, required=True)
+            payload.video = toml_get_and_check(data, "video", str, required=True)
+            payload.thumb = toml_get_and_check(data, "thumbnail", str, required=True)
+            payload.title = toml_get_and_check(data, "title", str, required=True)
+            payload.desc = toml_get_and_check(data, "description", str, required=True)
+            payload.tags = toml_get_and_check(data, "tags", list, str, required=True)
         except TomlGetCheckException as e:
             raise PayloadDecodeException("Failed to decode payload: {}".format(e))
         return payload

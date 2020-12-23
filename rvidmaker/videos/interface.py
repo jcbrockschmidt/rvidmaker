@@ -6,7 +6,14 @@ class DownloadException(Exception):
 
 
 class VideoRef:
-    """References a remote video"""
+    """
+    References a remote video.
+
+    Attributes:
+        title (str): Title of the video.
+        author (str): Author of the video.
+        duration (float): Duration of a video in seconds. None if the duration is not known.
+    """
 
     def download(self, output_path):
         """
@@ -25,23 +32,14 @@ class VideoRef:
         """
         raise NotImplementedError
 
-    def get_title(self):
-        """
-        Returns:
-            str: The title of the video.
-        """
+    @property
+    def thumb(self):
         raise NotImplementedError
 
-    def get_author(self):
-        """
-        Returns:
-            str: The author of the video.
-        """
+    @property
+    def author(self):
         raise NotImplementedError
 
-    def get_duration(self):
-        """
-        Returns:
-           float: The duration of a video in seconds. None if the duration is not known.
-        """
+    @property
+    def duration(self):
         return None
