@@ -1,5 +1,6 @@
 [reddit.compilation]
 subreddit = "IdiotsInCars"
+default_title = "Bad Drivers Compilation"
 time_frame = "week"
 min_score = 100
 min_clip_duration = 2
