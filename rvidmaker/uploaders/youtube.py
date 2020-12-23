@@ -98,7 +98,6 @@ class YouTubeUploader:
         retry = 0
         while response is None:
             try:
-                print("Uploading video...")
                 status, response = insert_request.next_chunk()
                 if response is not None:
                     if "id" in response:
@@ -137,6 +136,15 @@ class YouTubeUploader:
                 )
                 time.sleep(sleep_seconds)
 
+    def is_authed(self):
+        """
+        Checks whether OAuth 2.0 authentication has been completed.
+
+        Returns:
+            bool: Whether authentication has been completed.
+        """
+        return self._get_creds(_OAUTH_FILE) is not None
+
     def auth(self):
         """
         Runs the user through the OAuth 2.0 authentication process.
@@ -144,7 +152,9 @@ class YouTubeUploader:
         Raises:
             AuthException: If authentication fails.
         """
-        if self._get_creds(_OAUTH_FILE) is None:
+        if self.is_authed():
+            print("Already authenticated")
+        else:
             print("Authenticating...")
             storage = Storage(_OAUTH_FILE)
             flow = flow_from_clientsecrets(
@@ -153,8 +163,6 @@ class YouTubeUploader:
                 message=_MISSING_CLIENT_SECRETS_MSG,
             )
             run_flow(flow, storage)
-        else:
-            print("Already authenticated")
 
     def upload(
         self, path, title, desc="", tags=set(), category=22, privacy_status="unlisted"
