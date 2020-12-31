@@ -9,20 +9,21 @@ from rvidmaker.suites import (
     SuiteGenerateException,
 )
 import sys
+from sys import stderr
 import toml
 from toml import TomlDecodeError
 
 
 def main(profile_path, output_dir, censor_path=None, block_path=None):
     if not os.path.isfile(profile_path):
-        print('"{}" is not a file'.format(profile_path))
-        return
+        print('"{}" is not a file'.format(profile_path), file=stderr)
+        sys.exit(1)
     if censor_path and not os.path.isfile(censor_path):
-        print('"{}" is not a file'.format(censor_path))
-        return
+        print('"{}" is not a file'.format(censor_path), file=stderr)
+        sys.exit(1)
     if block_path and not os.path.isfile(block_path):
-        print('"{}" is not a file'.format(block_path))
-        return
+        print('"{}" is not a file'.format(block_path), file=stderr)
+        sys.exit(1)
 
     reddit = RedditVideoCompSuite()
     try:
@@ -38,13 +39,13 @@ def main(profile_path, output_dir, censor_path=None, block_path=None):
             blocker = None
         reddit.config(profile_path, censor, blocker)
     except SuiteConfigException as e:
-        print("Failed to configure suite: {}".format(e))
-        return
+        print("Failed to configure suite: {}".format(e), file=stderr)
+        sys.exit(1)
     try:
         reddit.generate(output_dir)
     except SuiteGenerateException as e:
-        print("Failed to generate video: {}".format(e))
-        return
+        print("Failed to generate video: {}".format(e), file=stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
