@@ -130,7 +130,7 @@ class RedditArticle:
 
     @property
     def author(self):
-        self._author
+        return self._author
 
     @property
     def category(self):
