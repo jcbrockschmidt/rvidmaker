@@ -18,11 +18,10 @@ from rvidmaker.utils import (
 )
 from .interface import Suite, SuiteConfigException, SuiteGenerateException
 
-# TODO: Move tag limits to YouTubeUploader
-# Maximum number of characters for a single tag on YouTube.
-YT_TAG_MAX_CHARS = 30
-# Maximum number of characters for YouTube tags.
-YT_TAGS_MAX_TOTAL_CHAR = 500
+# Maximum number of characters for a single tag.
+TAG_MAX_CHARS = 30
+# Maximum number of total characters for tags.
+TAGS_MAX_TOTAL_CHAR = 500
 # Maximum number of articles to scrape in a batch.
 ARTICLE_LIMIT = 100
 # Maximum character length of the primary video title (before adding subreddit information).
@@ -87,8 +86,8 @@ class RedditVideoCompSuite(Suite):
             self._censor_metadata = toml_get_and_check(
                 profile, "censor_metadata", bool, default=False
             )
-            self._default_tags = set(
-                toml_get_and_check(profile, "default_tags", list, str, default=list())
+            self._default_tags = toml_get_and_check(
+                profile, "default_tags", list, str, default=list()
             )
         except TomlGetCheckException as e:
             raise SuiteConfigException("Invalid TOML profile: {}".format(str(e)))
@@ -184,19 +183,19 @@ class RedditVideoCompSuite(Suite):
             videos (list): List of `rvidmaker.videos.VideoRef` to extract tags from.
 
         Returns:
-            set: Set of tags as `str`s.
+            :obj:`list` of :obj:`str`: List of tags in descending order of importance.
         """
         tags = self._default_tags.copy()
         tags_len = sum([len(t) for t in tags])
-        chars_left = YT_TAGS_MAX_TOTAL_CHAR - tags_len
+        chars_left = TAGS_MAX_TOTAL_CHAR - tags_len
         blocklist = self._censor_metadata and self._blocker or None
         extra_tags = extract_tags(
             videos,
             blocklist=blocklist,
-            max_tag_len=YT_TAG_MAX_CHARS,
+            max_tag_len=TAG_MAX_CHARS,
             max_total_chars=chars_left,
         )
-        tags.update(extra_tags)
+        tags.extend(extra_tags)
         return tags
 
     def generate(self, output_dir):
@@ -257,8 +256,7 @@ class RedditVideoCompSuite(Suite):
         payload.desc = desc
 
         print("Creating tags...")
-        tags = self._make_tags(used_videos)
-        payload.tags = tuple(tags)
+        payload.tags = self._make_tags(used_videos)
 
         # Create our thumbnail using the top-scored video with no words or phrases in the blocklist.
         print("Creating thumbnail...")

@@ -77,12 +77,47 @@ class AuthException(Exception):
 class YouTubeUploader:
     """Uploads videos to YouTube"""
 
+    # Maximum total number of characters for all tags.
+    _TAGS_MAX_CHARS_TOTAL = 500
+
+    # Maximum number of characters for a single tag.
+    _TAGS_MAX_CHARS = 30
+
     def _get_creds(self, oauth_file):
         if os.path.exists(oauth_file):
             storage = Storage(oauth_file)
             creds = storage.get()
             if creds is not None and not creds.invalid:
                 return creds
+
+    def _truncate_tags(self, tags):
+        """
+        Truncates at list of tags to fit within YouTube's tag restrictions.
+
+        Args:
+            tags (:obj:`list` of :obj:`str`): Original tags in descending order of importance.
+
+        Returns:
+            list: The modified list of tags.
+        """
+        new_tags = []
+        total_len = 0
+        for t in tags:
+            if len(t) > self._TAGS_MAX_CHARS:
+                continue
+            extra_len = len(t)
+            if len(t.split()) > 1:
+                # YouTube puts quotation marks around tags with whitespace / multiple words.
+                extra_len += 2
+            if len(new_tags) > 0:
+                # YouTube puts commas between each tag.
+                extra_len += 1
+            if total_len + extra_len < self._TAGS_MAX_CHARS_TOTAL:
+                total_len += extra_len
+                new_tags.append(t)
+            # Less importance tags near the end of the list might be included because they are
+            # shorter than preceding tags.
+        return new_tags
 
     def _resumable_upload(self, insert_request):
         """
@@ -184,7 +219,7 @@ class YouTubeUploader:
             run_flow(flow, storage)
 
     def upload(
-        self, path, title, desc="", tags=set(), category=22, privacy_status="unlisted"
+        self, path, title, desc="", tags=list(), category=22, privacy_status="unlisted"
     ):
         """
         Uploads a video to YouTube.
@@ -193,7 +228,7 @@ class YouTubeUploader:
             path (str): Path to the video to upload.
             title (str): Title for the video.
             desc (str): Description for the video.
-            tags (set): Tags for the video.
+            tags (list): Tags for the video in descending order of importance. May be truncated.
             category (int): Category to upload under. Defaults to 22 for "Entertainment".
                 See https://developers.google.com/youtube/v3/docs/videoCategories/list for
                 different category numbers.
@@ -208,15 +243,15 @@ class YouTubeUploader:
             UploadException: If the video fails to upload.
             ValueError: If one of the arguments' values is invalid.
         """
-        if type(path) != str:
+        if not isinstance(path, str):
             raise TypeError("path must be of type str")
-        if type(title) != str:
+        if not isinstance(title, str):
             raise TypeError("title must be of type str")
-        if type(desc) != str:
+        if not isinstance(desc, str):
             raise TypeError("desc must be of type str")
-        if type(tags) != set:
-            raise TypeError("tags must be of type set")
-        if type(category) != int:
+        if not isinstance(tags, (list, tuple)):
+            raise TypeError("tags must be a list or tuple")
+        if not isinstance(category, int):
             raise TypeError("category must be of type int")
         if not os.path.isfile(path):
             raise ValueError('"{}" is not a file'.format(path))
@@ -227,6 +262,11 @@ class YouTubeUploader:
                 'privacy_status must be either "public", "private", or "unlisted"'
             )
 
+        old_tag_count = len(tags)
+        tags = self._truncate_tags(tags)
+        tag_diff = old_tag_count - len(tags)
+        if tag_diff > 0:
+            print("{} tags excluded".format(tag_diff))
         creds = self._get_creds(_OAUTH_FILE)
         if creds is None:
             return AuthException("Application has not been authenticated yet")
@@ -239,7 +279,7 @@ class YouTubeUploader:
             "snippet": {
                 "title": title,
                 "description": desc,
-                "tags": list(tags),
+                "tags": tags,
                 "categoryId": category,
             },
             "status": {"privacyStatus": privacy_status},
