@@ -5,6 +5,8 @@ Code derived from https://developers.google.com/youtube/v3/guides/uploading_a_vi
 """
 
 import httplib2
+from json import JSONDecodeError
+import json
 import os
 import random
 import time
@@ -114,9 +116,21 @@ class YouTubeUploader:
                         e.resp.status, e.content
                     )
                 else:
-                    raise UploadException(
-                        "An HTTP error {} occurred: {}".format(e.resp.status, e.content)
-                    )
+                    code = e.resp.status
+                    try:
+                        content = json.loads(e.content.decode("utf-8"))
+                    except JSONDecodeError:
+                        raise UploadException(
+                            "Failed to parse JSON for HTTP {} error".format(code)
+                        )
+                    if "error" in content and "message" in content["error"]:
+                        raise UploadException(
+                            "An HTTP error {} occurred: {}".format(
+                                code, content["error"]["message"]
+                            )
+                        )
+                    else:
+                        raise UploadException("An HTTP error {} occurred".format(code))
             except _RETRIABLE_EXCEPTIONS as e:
                 error = "A retriable error occurred: {}".format(e)
             except BaseException as e:
@@ -157,11 +171,16 @@ class YouTubeUploader:
         else:
             print("Authenticating...")
             storage = Storage(_OAUTH_FILE)
-            flow = flow_from_clientsecrets(
-                _CLIENT_SECRETS_FILE,
-                scope=_YOUTUBE_UPLOAD_SCOPE,
-                message=_MISSING_CLIENT_SECRETS_MSG,
-            )
+            try:
+                flow = flow_from_clientsecrets(
+                    _CLIENT_SECRETS_FILE,
+                    scope=_YOUTUBE_UPLOAD_SCOPE,
+                    message=_MISSING_CLIENT_SECRETS_MSG,
+                )
+            except JSONDecodeError as e:
+                raise AuthException(
+                    "Failed to decode client secrets file: {}".format(e)
+                )
             run_flow(flow, storage)
 
     def upload(
