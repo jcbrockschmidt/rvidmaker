@@ -219,7 +219,7 @@ class YouTubeUploader:
             run_flow(flow, storage)
 
     def upload(
-        self, path, title, desc="", tags=list(), category=22, privacy_status="unlisted"
+        self, path, title, desc="", tags=list(), category=24, privacy_status="unlisted"
     ):
         """
         Uploads a video to YouTube.
@@ -229,7 +229,7 @@ class YouTubeUploader:
             title (str): Title for the video.
             desc (str): Description for the video.
             tags (list): Tags for the video in descending order of importance. May be truncated.
-            category (int): Category to upload under. Defaults to 22 for "Entertainment".
+            category (int): Category to upload under. Defaults to 24 for "Entertainment".
                 See https://developers.google.com/youtube/v3/docs/videoCategories/list for
                 different category numbers.
             privacy_status (str): Whether the video is "public", "private", or "unlisted".
