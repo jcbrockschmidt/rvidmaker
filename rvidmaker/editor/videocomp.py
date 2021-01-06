@@ -10,6 +10,7 @@ from moviepy.editor import (
     TextClip,
     VideoFileClip,
 )
+import multiprocessing
 import os
 from rvidmaker.videos import DownloadException
 from shutil import rmtree
@@ -250,7 +251,8 @@ class VideoCompiler:
             timestamp += clip.duration
 
         final = concatenate_videoclips(clips)
-        final.write_videofile(output_path)
+        thread_cnt = multiprocessing.cpu_count()
+        final.write_videofile(output_path, threads=thread_cnt)
 
         # Delete all downloaded videos.
         rmtree(_DOWNLOAD_DIR)
