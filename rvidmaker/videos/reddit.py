@@ -15,7 +15,14 @@ if not os.path.exists(_TEMP_DOWNLOAD_DIR):
 
 
 class RedditVideoRef(VideoRef):
-    """References videos hosted on Reddit"""
+    """
+    References videos hosted on Reddit.
+
+    Attributes:
+        title (str): Title of the video.
+        author (str): Author of the video.
+        duration (float): Duration of the video. None if not known.
+    """
 
     def __init__(self, title, author, video_url, audio_url=None, duration=None):
         """
@@ -33,6 +40,15 @@ class RedditVideoRef(VideoRef):
         self._duration = duration
 
     def download(self, output_path):
+        """
+        Downloads the video to disk.
+
+        Args:
+            output_path (str): Path to write video to. The extension may be changed.
+
+        Returns:
+            str: Path the video is written to. Extension may differ from `output_path`.
+        """
         # Check video extension
         base, ext = os.path.splitext(output_path)
         if ext != "mp4":
