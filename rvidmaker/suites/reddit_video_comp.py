@@ -238,7 +238,6 @@ class RedditVideoCompSuite(Suite):
                 if self._blocker.contains_profanity(v.title):
                     continue
             title_video = v
-            thumb_made = True
             break
         if title_video is None:
             primary_title = self._default_title
