@@ -4,14 +4,10 @@ import ffmpeg
 import os
 import requests
 import shutil
+import tempfile
 
 from rvidmaker.utils import get_random_path
 from .interface import DownloadException, VideoRef
-
-_TEMP_DOWNLOAD_DIR = "/tmp/rvidmaker"
-
-if not os.path.exists(_TEMP_DOWNLOAD_DIR):
-    os.mkdir(_TEMP_DOWNLOAD_DIR)
 
 
 class RedditVideoRef(VideoRef):
@@ -55,32 +51,32 @@ class RedditVideoRef(VideoRef):
             output_path = "{}.mp4".format(base)
 
         # Download video and audio to temporary files.
-        temp_video_path = get_random_path(_TEMP_DOWNLOAD_DIR, "mp4")
+        temp_video_file = tempfile.NamedTemporaryFile(suffix=".mp4")
+        print("temp video name:", temp_video_file.name)  # DEBUG
         # TODO: Download video and audio asynchronously
-        with open(temp_video_path, "wb") as f:
-            req = requests.get(self._video_url)
-            if req.status_code != 200:
+        video_req = requests.get(self._video_url)
+        if video_req.status_code != 200:
+            raise DownloadException(
+                "Failed to download video from {}: {} response".format(
+                    self._video_url, video_req.status_code
+                )
+            )
+        temp_video_file.write(video_req.content)
+        if self._audio_url is not None:
+            temp_audio_file = tempfile.NamedTemporaryFile(suffix=".mp4")
+            print("temp audio name:", temp_audio_file.name)  # DEBUG
+            audio_req = requests.get(self._audio_url)
+            if audio_req.status_code != 200:
                 raise DownloadException(
                     "Failed to download video from {}: {} response".format(
-                        self._video_url, req.status_code
+                        self._audio_url, audio_req.status_code
                     )
                 )
-            f.write(req.content)
-        if self._audio_url is not None:
-            temp_audio_path = get_random_path(_TEMP_DOWNLOAD_DIR, "mp4")
-            with open(temp_audio_path, "wb") as f:
-                req = requests.get(self._audio_url)
-                if req.status_code != 200:
-                    raise DownloadException(
-                        "Failed to download video from {}: {} response".format(
-                            self._audio_url, req.status_code
-                        )
-                    )
-                f.write(req.content)
+            temp_audio_file.write(audio_req.content)
 
             # Combine video and audio
-            video = ffmpeg.input(temp_video_path)
-            audio = ffmpeg.input(temp_audio_path)
+            video = ffmpeg.input(temp_video_file.name)
+            audio = ffmpeg.input(temp_audio_file.name)
             try:
                 ffmpeg.concat(video, audio, v=1, a=1).output(output_path).run(
                     quiet=True, overwrite_output=True
@@ -91,10 +87,11 @@ class RedditVideoRef(VideoRef):
                 raise DownloadException("Failed to combine video and audio with FFmpeg")
             finally:
                 # Delete temporary files
-                os.remove(temp_video_path)
-                os.remove(temp_audio_path)
+                temp_video_file.close()
+                temp_audio_file.close()
         else:
-            shutil.move(temp_video_path, output_path)
+            shutil.move(temp_video_file.name, output_path)
+            temp_video_file.close()
 
         return output_path
 
