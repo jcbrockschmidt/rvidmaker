@@ -16,7 +16,7 @@ USER_AGENT = "rvidmaker 0.0.1"
 VALID_TIME_FILTERS = ("all", "day", "hour", "month", "week", "year")
 
 
-class ConfigNotFound(Exception):
+class RedditConfigNotFound(Exception):
     """Raised when no config file is found"""
 
 
@@ -302,12 +302,12 @@ class RedditReader:
     def __init__(self):
         """
         Raises:
-            ConfigNotFound: If no config file is found.
+            RedditConfigNotFound: If no config file is found.
             RedditApiException: If calls to the Reddit API fail.
         """
 
         if not os.path.exists(CONFIG_PATH):
-            raise ConfigNotFound
+            raise RedditConfigNotFound
 
         with open(CONFIG_PATH) as f:
             config = toml.load(f)
