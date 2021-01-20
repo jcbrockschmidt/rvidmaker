@@ -199,6 +199,7 @@ class VideoCompiler:
         manifest = Manifest()
         clips = []
         w, h = res
+        videos_used = 0
         for v, path in dl:
             title = v.title
             author = v.author
@@ -225,21 +226,36 @@ class VideoCompiler:
             )
 
             # Add text.
-            title_clip = TextClip(
-                title, font="IBM Plex Sans", fontsize=60, color="white"
-            )
-            title_clip = title_clip.set_position((10, 10)).set_duration(clip.duration)
-            title_clip_shadow = TextClip(
-                title, font="IBM Plex Sans", fontsize=60, color="black"
-            )
-            title_clip_shadow = title_clip_shadow.set_position((12, 12)).set_duration(
-                clip.duration
-            )
-            author_text = "u/{}".format(author)
-            author_clip = TextClip(
-                author_text, font="IBM Plex Sans", fontsize=40, color="grey"
-            )
-            author_clip = author_clip.set_position((40, 75)).set_duration(clip.duration)
+            try:
+                # A title that is too long can cause ImageMagick to fail.
+                # Titles longer than 100 characters won't fit on the screen anyway.
+                title_slice = title[:100]
+                title_clip = TextClip(
+                    title_slice, font="IBM Plex Sans", fontsize=60, color="white"
+                )
+                title_clip = title_clip.set_position((10, 10)).set_duration(
+                    clip.duration
+                )
+                title_clip_shadow = TextClip(
+                    title_slice, font="IBM Plex Sans", fontsize=60, color="black"
+                )
+                title_clip_shadow = title_clip_shadow.set_position(
+                    (12, 12)
+                ).set_duration(clip.duration)
+                author_text = "u/{}".format(author)
+                author_clip = TextClip(
+                    author_text, font="IBM Plex Sans", fontsize=40, color="grey"
+                )
+                author_clip = author_clip.set_position((40, 75)).set_duration(
+                    clip.duration
+                )
+            except OSError as e:
+                # This is intended to catch ImageMagick related errors.
+                # ImageMagick can fail in unexpected ways, but it happens seldom enough that
+                # we can just ignore it.
+                # Future versions of Moviepy will likely move away from ImageMagick (https://github.com/Zulko/moviepy/issues/1145#issuecomment-623594679)
+                print("Unexpected error: {}".format(e), file=sys.stderr)
+                continue
 
             clip = CompositeVideoClip(
                 [clip, title_clip_shadow, title_clip, author_clip], size=res
@@ -249,7 +265,15 @@ class VideoCompiler:
             # Update manifest.
             manifest.add_entry(v, timestamp)
             timestamp += clip.duration
+            videos_used += 1
 
+        # Videos might have been skipped due to recoverable errors.
+        if videos_used < 2:
+            raise NotEnoughVideos(
+                "Only {} videos successfully editted, need at least 2".format(
+                    videos_used
+                )
+            )
         final = concatenate_videoclips(clips)
         thread_cnt = multiprocessing.cpu_count()
         final.write_videofile(output_path, threads=thread_cnt)
