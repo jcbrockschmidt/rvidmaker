@@ -20,4 +20,14 @@ setup(
     author_email="jcbrockschmidt@gmail.com",
     url="https://github.com/jcbrockschmidt/rvidmaker",
     install_requires=requires,
+    packages=[
+        "rvidmaker",
+        "rvidmaker.editor",
+        "rvidmaker.readers",
+        "rvidmaker.suites",
+        "rvidmaker.thumbnails",
+        "rvidmaker.uploaders",
+        "rvidmaker.videos",
+        "rvidmaker.voices",
+    ],
 )
