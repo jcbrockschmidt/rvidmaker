@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+from datetime import datetime
 import os
 from rvidmaker.uploaders import (
     Payload,
@@ -40,7 +41,7 @@ def main(payload_path):
         sys.exit(1)
 
     print('Uploading video at "{}"...'.format(video_path))
-    start = time()
+    start = datetime.now()
     try:
         yt_video_id = uploader.upload(
             video_path,
@@ -52,11 +53,8 @@ def main(payload_path):
     except UploadException as e:
         print("Failed to upload video: {}".format(e), file=stderr)
         sys.exit(1)
-    delta = time() - start
-    delta_h = int(delta // 3600)
-    delta_m = int(delta // 60) - delta_h * 60
-    delta_s = delta % 60
-    print("Uploaded in {}:{:02d}:{:0.1f}".format(delta_h, delta_m, delta_s))
+    elapsed = datetime.now() - start
+    print("Uploaded in {}".format(elapsed))
     print("Video uploaded to YouTube with ID {}".format(yt_video_id))
 
 

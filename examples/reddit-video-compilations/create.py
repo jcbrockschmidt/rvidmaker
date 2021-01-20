@@ -2,6 +2,7 @@
 
 import argparse
 from better_profanity import Profanity
+from datetime import datetime
 import os
 from rvidmaker.suites import (
     RedditVideoCompSuite,
@@ -26,6 +27,7 @@ def main(profile_path, output_dir, censor_path=None, block_path=None):
         sys.exit(1)
 
     reddit = RedditVideoCompSuite()
+    print("Configuring editor...")
     try:
         if censor_path:
             censor = Profanity()
@@ -42,7 +44,11 @@ def main(profile_path, output_dir, censor_path=None, block_path=None):
         print("Failed to configure suite: {}".format(e), file=stderr)
         sys.exit(1)
     try:
+        print("Generating video...")
+        start = datetime.now()
         reddit.generate(output_dir)
+        elapsed = datetime.now() - start
+        print("Generated in {}".format(elapsed))
     except SuiteGenerateException as e:
         print("Failed to generate video: {}".format(e), file=stderr)
         sys.exit(1)
