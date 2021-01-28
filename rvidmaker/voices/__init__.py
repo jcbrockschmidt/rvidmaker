@@ -1,2 +1,2 @@
 from .gttsvoicer import GTTSVoicer
-from .voicerinterface import NarrationError, VoiceNotFound, VoicerInterface
+from .interface import NarrationError, VoiceNotFound, Voicer

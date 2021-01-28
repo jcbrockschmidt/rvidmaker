@@ -1,10 +1,10 @@
 from gtts import gTTS
 from os import path
 
-from .voicerinterface import VoiceNotFound, VoicerInterface, NarrationError
+from .interface import VoiceNotFound, Voicer, NarrationError
 
 
-class GTTSVoicer(VoicerInterface):
+class GTTSVoicer(Voicer):
     """A voicer that uses Google Text-to-Speech"""
 
     LANG = "en"

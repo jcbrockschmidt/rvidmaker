@@ -6,7 +6,7 @@ class NarrationError(Exception):
     """Raised when something goes wrong while generating narrated audio"""
 
 
-class VoicerInterface:
+class Voicer:
     """An interface for voicers for generating narrated text"""
 
     def list_voice_ids(self):
