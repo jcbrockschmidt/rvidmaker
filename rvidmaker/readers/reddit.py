@@ -392,10 +392,10 @@ class RedditReader:
         try:
             sub = self.reddit.subreddit(subreddit)
             raw_articles = sub.top(time_filter=time_filter, limit=limit)
+            unfiltered = [RedditArticle(art) for art in raw_articles]
         except praw.exceptions.PRAWException as e:
             raise RedditApiException(str(e))
 
-        unfiltered = [RedditArticle(art) for art in raw_articles]
         filtered = self._filter_articles(
             unfiltered, min_score=min_score, min_age=min_age
         )

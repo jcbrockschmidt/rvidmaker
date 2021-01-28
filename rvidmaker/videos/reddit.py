@@ -46,7 +46,12 @@ class RedditVideoRef(VideoRef):
         Raises:
             DownloadException: If the download fails.
         """
-        req = requests.get(url)
+        try:
+            req = requests.get(url)
+        except requests.exceptions.RequestException as e:
+            raise DownloadException(
+                "Failed to download video from {}: {}".format(url, e)
+            )
         if req.status_code != 200:
             raise DownloadException(
                 "Failed to download video from {}: {} response".format(
