@@ -33,7 +33,7 @@ class VideoRef:
         raise NotImplementedError
 
     @property
-    def thumb(self):
+    def title(self):
         raise NotImplementedError
 
     @property
