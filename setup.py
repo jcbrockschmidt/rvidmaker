@@ -20,7 +20,7 @@ setup(
         "ffmpeg-python>=0.2.0",
         "google-api-python-client>=1.12.8",
         "gtts>=2.1.1",
-        "httplib2==0.18.1",
+        "httplib2==0.19.0",
         "moviepy>=1.0.3",
         "nltk>=3.5",
         "oauth2client==4.1.3",
