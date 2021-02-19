@@ -21,7 +21,12 @@ Configure ImageMagick by opening `/etc/ImageMagick-<VERSION>/policy.xml` and com
 
 Install the Python package.
 ```bash
-./setup.py install
+pip install .
+```
+
+Download the corpora used for text processing.
+```bash
+python -m textblob.download_corpora
 ```
 
 ## Example Usage

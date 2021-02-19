@@ -27,6 +27,7 @@ setup(
         "Pillow>=7.2.0",
         "praw>=7.0.0",
         "rake-nltk>=1.0.4",
+        "textblob>=0.15.3",
         "toml>=0.10.2",
     ],
     packages=[
