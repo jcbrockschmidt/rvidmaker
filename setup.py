@@ -25,7 +25,7 @@ setup(
         "nltk>=3.5",
         "oauth2client==4.1.3",
         "Pillow>=7.2.0",
-        "praw>=7.0.0",
+        "praw>=7.1.4",
         "rake-nltk>=1.0.4",
         "textblob>=0.15.3",
         "toml>=0.10.2",
