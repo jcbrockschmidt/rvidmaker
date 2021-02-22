@@ -15,6 +15,8 @@ import os
 from rvidmaker.videos import DownloadException
 from shutil import rmtree
 import sys
+import tempfile
+from time import time_ns
 
 # Temporary directory for storing downloaded videos.
 _DOWNLOAD_DIR = ".downloaded"
@@ -194,6 +196,9 @@ class VideoCompiler:
                 )
             )
 
+        # We use this directory when we need to write a video to a file temporarily.
+        temp_dir = tempfile.TemporaryDirectory()
+
         # Load all clips.
         timestamp = 0
         manifest = Manifest()
@@ -221,9 +226,22 @@ class VideoCompiler:
             cw, ch = clip.size
             size_mult = min(w / cw, h / ch)
             new_size = (cw * size_mult, ch * size_mult)
-            clip = clip.resize(newsize=new_size).on_color(
-                size=res, color=bg_color, pos="center"
-            )
+            clip = clip.resize(newsize=new_size)
+
+            # If the video does not fill the screen, add a background to it.
+            # This intends to make the video more visually interesting.
+            if clip.size != res:
+                ext = os.path.splitext(path)[1]
+                # We use time_ns to generate a unique filename.
+                temp_vid_path = os.path.join(temp_dir.name, str(time_ns()) + ext)
+                clip.write_videofile(
+                    temp_vid_path,
+                    ffmpeg_params=[
+                        "-lavfi",
+                        "[0:v]scale=ih*16/9:-1,boxblur=luma_radius=min(h\,w)/20:luma_power=1:chroma_radius=min(cw\,ch)/20:chroma_power=1[bg];[bg][0:v]overlay=(W-w)/2:(H-h)/2,crop=h=iw*9/16",
+                    ],
+                )
+                clip = VideoFileClip(temp_vid_path)
 
             # Add text.
             try:
